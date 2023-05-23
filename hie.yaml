@@ -1,13 +1,13 @@
 cradle:
   stack:
     - path: "./lib"
-      component: "report:lib"
+      component: "seqcal:lib"
 
     - path: "./exec/Main.lhs"
-      component: "report:exe:myprogram"
+      component: "seqcal:exe:myprogram"
 
     - path: "./exec/Paths_report.hs"
-      component: "report:exe:myprogram"
+      component: "seqcal:exe:myprogram"
 
     - path: "./test"
-      component: "report:test:simpletests"
+      component: "seqcal:test:simpletests"

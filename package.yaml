@@ -21,14 +21,13 @@ executables:
     source-dirs: exec
     dependencies:
         - seqcal
-        # - report
 
 tests:
   simpletests:
     main: simpletests.lhs
     source-dirs: test
     dependencies:
-      # - report
+      - seqcal
       - QuickCheck
       - hspec
       - GHC
