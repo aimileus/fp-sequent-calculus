@@ -3,6 +3,7 @@
 module Sequent where
 
 import Data.List
+import Data.Maybe
 
 type Prop = Int
 
@@ -22,18 +23,13 @@ data Sequent f = S
   }
   deriving (Eq, Show)
 
-data SeqTree f = ST
-  { seq :: Sequent f,
-    children :: [Sequent f]
-  }
-  deriving (Eq, Show)
-
 data Rule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
 data SequentTree f
   = Axiom (Sequent f)
-  | Application Rule [Sequent f]
+  | Application Rule (Sequent f) [SequentTree f]
+  deriving (Eq, Show)
 
 isProp :: Formula p -> Bool
 isProp (P _) = True
@@ -59,44 +55,48 @@ data Expansion f
       { exps :: [Sequent f],
         rule :: Rule
       }
-  | Atomic f
+  | AtomicL f
+  | AtomicR f
+
+data Expanded f = Expd
+  { expds :: [Sequent f],
+    rule' :: Rule
+  }
+
+applyExpansion :: Sequent f -> Expansion f -> Maybe (Expanded f)
+applyExpansion s (Exp e r) = Just $ Expd (mergeSequent s <$> e) r
+applyExpansion _ (AtomicL _) = Nothing
+applyExpansion _ (AtomicR _) = Nothing
+
+-- Is dit wat je wil, want de SeqTree die je moet maken is wel anders in deze twee gevallen.
+-- Ik comment dit even, want ik heb hem net anders in m'n hoofd nu, even kijken of het logisch uitkomt
+-- applyExpansion (AtomicL f) = [fromAnte f]
+-- applyExpansion (AtomicR f) = [fromCons f]
 
 isAtomic :: Expansion f -> Bool
-isAtomic (Atomic _) = True
+isAtomic (AtomicL _) = True
+isAtomic (AtomicR _) = True
 isAtomic _ = False
 
-simpleExpand :: Formula p -> Formula p -> Rule -> [Expansion (Formula p)]
-simpleExpand f g r = fmap ($ r) [Exp (return $ fromAnte [f]), Exp (return $ fromCons [g])]
+expandLeft :: Formula p -> Expansion (Formula p)
+expandLeft (phi `Impl` psi) = Exp [fromAnte [psi], fromCons [phi]] ImplL
+expandLeft (phi `Disj` psi) = (Exp . fmap fromAnte) [[phi], [psi]] DisL
+expandLeft (phi `Conj` psi) = Exp [fromAnte [phi, psi]] ConL
+expandLeft (Neg phi) = Exp [fromCons [phi]] NegL
+expandLeft phi@(P _) = AtomicL phi
 
-expandHelper :: Rule -> Sequent (Formula p) -> Expansion (Formula p)
-expandHelper r s = Exp [s] r
-
-expandLeft :: Formula p -> [Expansion (Formula p)]
-expandLeft (phi `Impl` psi) = fmap (expandHelper ImplL) [fromAnte [psi], fromCons [phi]]
-expandLeft (phi `Disj` psi) = fmap (expandHelper DisL . fromAnte) [[phi], [psi]]
-expandLeft (phi `Conj` psi) = fmap (expandHelper ConL . fromAnte) [[phi, psi]]
-expandLeft (Neg phi) = fmap (expandHelper NegL . fromCons) [[phi]]
-expandLeft phi@(P _) = [Atomic phi]
-
-expandRight :: Formula p -> [Expansion (Formula p)]
-expandRight (phi `Impl` psi) = [Exp [fromCons [phi], fromAnte [psi]] ImplL]
-expandRight (phi `Conj` psi) =
-  fmap
-    ($ ConR)
-    [ Exp [fromCons [phi]],
-      Exp [fromCons [psi]]
-    ]
-expandRight (phi `Disj` psi) = [Exp [fromCons [phi, psi]] DisR]
-expandRight (Neg phi) = [Exp [fromCons [phi]] NegR]
-expandRight phi@(P _) = [Atomic phi]
+expandRight :: Formula p -> Expansion (Formula p)
+expandRight (phi `Impl` psi) = Exp [fromCons [phi], fromAnte [psi]] ImplL
+expandRight (phi `Conj` psi) = Exp [fromCons [psi], fromCons [phi]] ConR
+expandRight (phi `Disj` psi) = Exp [fromCons [phi, psi]] DisR
+expandRight (Neg phi) = Exp [fromCons [phi]] NegR
+expandRight phi@(P _) = AtomicR phi
 
 -- TODO: use zipper lists here instead of this mildly computationally intensive way.
 extractFormula :: Sequent (Formula p) -> [(Sequent (Formula p), Expansion (Formula p))]
-extractFormula (S l r) = undefined
+extractFormula (S l r) = lefts ++ rights
   where
-    -- lefts :: [(Sequent (Formula p), [Expansion (Formula p)])]
     lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
-    -- rights :: [(Sequent (Formula p), [Expansion (Formula p)])]
     rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
 
 holes :: [a] -> [([a], a)]
@@ -109,5 +109,14 @@ mapFst f (x, y) = (f x, y)
 mapSnd :: (b -> c) -> (a, b) -> (a, c)
 mapSnd = fmap
 
-proveStep :: Sequent f -> [Sequent f]
-proveStep = undefined
+prove :: Sequent (Formula p) -> SequentTree (Formula p)
+prove s = tree expanded
+  where
+    expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractFormula s)
+
+    tree Nothing = Axiom s
+    tree (Just (Expd e r)) = Application r s (prove <$> e)
+
+verifyTree :: (Eq f) => SequentTree f -> Bool
+verifyTree (Axiom (S ante cons)) = (not . null) (ante `intersect` cons)
+verifyTree (Application _ _ ys) = all verifyTree ys
