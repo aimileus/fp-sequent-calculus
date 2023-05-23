@@ -86,7 +86,7 @@ expandLeft (Neg phi) = Exp [fromCons [phi]] NegL
 expandLeft phi@(P _) = AtomicL phi
 
 expandRight :: Formula p -> Expansion (Formula p)
-expandRight (phi `Impl` psi) = Exp [fromCons [phi], fromAnte [psi]] ImplL
+expandRight (phi `Impl` psi) = Exp [S [phi] [psi]] ImplR
 expandRight (phi `Conj` psi) = Exp [fromCons [psi], fromCons [phi]] ConR
 expandRight (phi `Disj` psi) = Exp [fromCons [phi, psi]] DisR
 expandRight (Neg phi) = Exp [fromCons [phi]] NegR
