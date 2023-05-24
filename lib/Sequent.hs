@@ -6,6 +6,7 @@ module Sequent where
 
 import Data.List
 import Data.Maybe
+import Utils
 
 type Prop = Int
 
@@ -87,32 +88,12 @@ applyExpansion s (Exp e r) = Just $ Expd (mergeSequent s <$> e) r
 applyExpansion _ (AtomicL _) = Nothing
 applyExpansion _ (AtomicR _) = Nothing
 
--- Is dit wat je wil, want de SeqTree die je moet maken is wel anders in deze twee gevallen.
--- Ik comment dit even, want ik heb hem net anders in m'n hoofd nu, even kijken of het logisch uitkomt
--- applyExpansion (AtomicL f) = [fromAnte f]
--- applyExpansion (AtomicR f) = [fromCons f]
-
-isAtomic :: Expansion f r -> Bool
-isAtomic (AtomicL _) = True
-isAtomic (AtomicR _) = True
-isAtomic _ = False
-
 -- TODO: use zipper lists here instead of this mildly computationally intensive way.
 extractForm :: (Expandable f r) => Sequent f -> [(Sequent f, Expansion f r)]
 extractForm (S l r) = lefts ++ rights
   where
     lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
     rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
-
-holes :: [a] -> [([a], a)]
-holes [] = []
-holes (x : xs) = (xs, x) : fmap (mapFst (x :)) (holes xs)
-
-mapFst :: (a -> c) -> (a, b) -> (c, b)
-mapFst f (x, y) = (f x, y)
-
-mapSnd :: (b -> c) -> (a, b) -> (a, c)
-mapSnd = fmap
 
 prove :: (Expandable f r) => Sequent f -> SequentTree f r
 prove s = tree expanded
