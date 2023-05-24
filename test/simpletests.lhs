@@ -6,6 +6,9 @@ We now use the library QuickCheck to randomly generate input for our functions
 and test some properties.
 
 \begin{code}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+
 module Main where
 
 import Sequent
@@ -20,24 +23,60 @@ Note that the first test is a specific test with fixed inputs.
 The second and third test use QuickCheck.
 
 \begin{code}
-form1 :: PropForm Int
-form1 = P 1 `Disj` (Neg (P 1))
+validForms :: [PropForm Int]
+validForms =
+  [
+    P 1 `Disj` (Neg (P 1)),
+    Neg (P 1 `Conj` Neg (P 1)),
+    Top,
+    ((P 1 `Impl` P 2) `Conj` (P 2 `Impl` P 3)) `Impl` (P 1 `Impl` P 3)
+  ]
 
-s1 :: Sequent (PropForm Int)
-s1 = fromCons form1
+validSeqs :: [PSequent Int]
+validSeqs = [
+    S [Neg $ Neg $ P 1] [P 1],
+    S [P 1 `Disj` P 2] [P 1, P 2],
+    S [P 1, P 2] [P 1 `Conj` P 2],
+    S [P 1, P 2] [P 1, P 2]
+  ] ++ map (fromCons . return) validForms
 
-s1Tree :: SequentTree (PropForm Int) PropRule
-s1Tree = prove s1
+invalidForms :: [PropForm Int]
+invalidForms = [
+    P 1,
+    P 1 `Conj` P 2,
+    P 1 `Impl` (Neg $ P 1),
+    Bot
+  ]
+
+invalidSeqs :: [PSequent Int]
+invalidSeqs = [
+    S [] [P 1, P 2],
+    S [P 1 `Disj` P 2] [P 1]
+  ] ++ map (fromCons . return) invalidForms
 
 main :: IO ()
 main = hspec $ do
-  describe "Basics" $ do
-    it "somenumbers should be the same as [1..10]" $
-      somenumbers `shouldBe` [1..10]
-    it "funnyfunction: result is within [1..100]" $
-      property (\n -> funnyfunction n `elem` [1..100])
-    it "myreverse: using it twice gives back the same list" $
-      property $ \str -> myreverse (myreverse str) == (str::String)
+  describe "Properties of propositional logic" $ do
+    it "valid sequents are valid" $
+      all (verifyTree . prove) validSeqs `shouldBe` True
+    it "invalid sequents are invalid" $
+      any (verifyTree . prove) invalidSeqs `shouldBe` False
+    it "fromAnte: cons should be empty" $
+      property (\(fs::[PropForm Int]) -> null $ cons $ fromAnte fs)
+    it "fromAnte: ante is inverse" $
+      property (\(fs::[PropForm Int]) -> ante (fromAnte fs) == fs)
+    it "fromCons: ante should be empty" $
+      property (\(fs::[PropForm Int]) -> null $ ante $ fromCons fs)
+    it "fromCons: cons is inverse" $
+      property (\(fs::[PropForm Int]) -> cons (fromCons fs) == fs)
+    it "seqTree: leafs cannot be simplified" $
+      property (\(st::PSeqTree Int) -> all seqSimple $ leafs st)
+    it "simpleMerge: ante is merged" $
+      property (\(a::PSequent Int) (b::PSequent Int) -> ante a ++ ante b == ante (a `simpleMerge` b))
+    it "simpleMerge: cons is merged" $
+      property (\(a::PSequent Int) (b::PSequent Int) -> cons a ++ cons b == cons (a `simpleMerge` b))
+
+
 \end{code}
 
 To run the tests, use \verb|stack test|.

@@ -1,15 +1,12 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use newtype instead of data" #-}
 
 module InSeq where
 
 import PropSeq (PropForm (..))
 import Sequent
 
-data InForm p = In (PropForm p)
+newtype InForm p = In (PropForm p)
 
 data InRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)

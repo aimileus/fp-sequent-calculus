@@ -5,8 +5,13 @@ module PropSeq where
 
 import Data.List
 import Sequent
+import Test.QuickCheck (Arbitrary (arbitrary), oneof, sized)
 
 type Prop = Int
+
+type PSequent p = Sequent (PropForm p)
+
+type PSeqTree p = SequentTree (PropForm p) PropRule
 
 data PropForm p
   = P p
@@ -41,5 +46,25 @@ instance Expandable (PropForm p) PropRule where
   expandRight phi@Bot = AtomicR phi
 
 instance (Eq p) => Verfiable (PropForm p) where
-  isAxiom :: Sequent (PropForm p) -> Bool
-  isAxiom (S a c) = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
+  verifyAxiom :: Sequent (PropForm p) -> Bool
+  verifyAxiom (S a c) = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
+
+  formSimple :: PropForm p -> Bool
+  formSimple (P _) = True
+  formSimple Top = True
+  formSimple Bot = True
+  formSimple _ = False
+
+instance (Arbitrary p) => Arbitrary (PropForm p) where
+  arbitrary = sized f
+    where
+      f 0 = P <$> arbitrary
+      f n =
+        oneof
+          [ Neg <$> f (n - 1),
+            Impl
+              <$> f (n `div` 3)
+              <*> f (n `div` 3),
+            Conj <$> f (n `div` 3) <*> f (n `div` 3),
+            Disj <$> f (n `div` 3) <*> f (n `div` 3)
+          ]

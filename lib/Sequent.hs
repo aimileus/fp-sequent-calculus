@@ -3,8 +3,8 @@
 
 module Sequent where
 
-import Data.List
 import Data.Maybe
+import Test.QuickCheck (Arbitrary (arbitrary))
 import Utils
 
 data Sequent f = S
@@ -52,7 +52,11 @@ class Expandable f r | f -> r where
   expandRight :: f -> Expansion f r
 
 class Verfiable f where
-  isAxiom :: Sequent f -> Bool
+  verifyAxiom :: Sequent f -> Bool
+  formSimple :: f -> Bool
+
+seqSimple :: (Verfiable f) => Sequent f -> Bool
+seqSimple (S a c) = all formSimple a && all formSimple c
 
 applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
@@ -74,6 +78,16 @@ prove s = tree expanded
     tree Nothing = Axiom s
     tree (Just (Expd e r)) = Application r s (prove <$> e)
 
-verifyTree :: (Eq f) => SequentTree f r -> Bool
-verifyTree (Axiom (S a c)) = (not . null) (a `intersect` c)
+leafs :: SequentTree f r -> [Sequent f]
+leafs (Axiom f) = return f
+leafs (Application _ _ y) = y >>= leafs
+
+verifyTree :: (Verfiable f) => SequentTree f r -> Bool
+verifyTree (Axiom f) = verifyAxiom f
 verifyTree (Application _ _ ys) = all verifyTree ys
+
+instance (Arbitrary f) => Arbitrary (Sequent f) where
+  arbitrary = S <$> arbitrary <*> arbitrary
+
+instance (Arbitrary f, Expandable f r) => Arbitrary (SequentTree f r) where
+  arbitrary = prove . fromCons . return <$> arbitrary
