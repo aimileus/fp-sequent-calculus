@@ -1,29 +1,37 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
+
 module InSeq where
 
 import PropSeq (PropForm (..))
 import Sequent
 
+data InForm p = In (PropForm p)
+
 data InRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
-instance Expandable (PropForm p) InRule where
-  expandLeft :: PropForm p -> Expansion (PropForm p) InRule
-  expandLeft (phi `Impl` psi) = simpleExp [fromAnte [psi], fromCons [phi]] ImplL
-  expandLeft (phi `Disj` psi) = (simpleExp . fmap fromAnte) [[phi], [psi]] DisL
-  expandLeft (phi `Conj` psi) = simpleExp [fromAnte [phi, psi]] ConL
-  expandLeft (Neg phi) = simpleExp [fromAnte [phi `Impl` Bot]] NegL
-  expandLeft phi@(P _) = AtomicL phi
-  expandLeft phi@Top = AtomicL phi
-  expandLeft phi@Bot = AtomicL phi
+instance Expandable (InForm p) InRule where
+  expandLeft :: InForm p -> Expansion (InForm p) InRule
+  expandLeft (In (phi `Impl` psi)) = simpleExp [fromAnte [In psi], fromCons [In phi]] ImplL
+  expandLeft (In (phi `Disj` psi)) = (simpleExp . fmap fromAnte) [[In phi], [In psi]] DisL
+  expandLeft (In (phi `Conj` psi)) = simpleExp [fromAnte [In phi, In psi]] ConL
+  expandLeft (In (Neg phi)) = simpleExp [fromAnte [In (phi `Impl` Bot)]] NegL
+  expandLeft phi@(In (P _)) = AtomicL phi
+  expandLeft phi@(In Top) = AtomicL phi
+  expandLeft phi@(In Bot) = AtomicL phi
 
-  expandRight :: PropForm p -> Expansion (PropForm p) InRule
-  expandRight (phi `Impl` psi) = Exp mergeRightImpl [S [phi] [psi]] ImplR
-  expandRight (phi `Conj` psi) = simpleExp [fromCons [psi], fromCons [phi]] ConR
-  expandRight (phi `Disj` psi) = simpleExp [fromCons [phi, psi]] DisR
-  expandRight (Neg phi) = simpleExp [fromCons [phi]] NegR
-  expandRight phi@(P _) = AtomicR phi
-  expandRight phi@Top = AtomicR phi
-  expandRight phi@Bot = AtomicR phi
+  expandRight :: InForm p -> Expansion (InForm p) InRule
+  expandRight (In (phi `Impl` psi)) = Exp mergeRightImpl [S [In phi] [In psi]] ImplR
+  expandRight (In (phi `Conj` psi)) = simpleExp [fromCons [In psi], fromCons [In phi]] ConR
+  expandRight (In (phi `Disj` psi)) = simpleExp [fromCons [In phi, In psi]] DisR
+  expandRight (In (Neg phi)) = simpleExp [fromCons [In phi]] NegR
+  expandRight phi@(In (P _)) = AtomicR phi
+  expandRight phi@(In Top) = AtomicR phi
+  expandRight phi@(In Bot) = AtomicR phi
 
 mergeRightImpl :: Sequent a -> Sequent a -> Sequent a
 mergeRightImpl (S a1 _c1) (S a2 c2) = S (a1 ++ a2) c2

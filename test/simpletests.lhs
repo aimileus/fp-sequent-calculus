@@ -8,7 +8,8 @@ and test some properties.
 \begin{code}
 module Main where
 
-import Basics
+import Sequent
+import PropSeq
 
 import Test.Hspec
 import Test.QuickCheck
@@ -19,6 +20,15 @@ Note that the first test is a specific test with fixed inputs.
 The second and third test use QuickCheck.
 
 \begin{code}
+form1 :: PropForm Int
+form1 = P 1 `Disj` (Neg (P 1))
+
+s1 :: Sequent (PropForm Int)
+s1 = fromCons form1
+
+s1Tree :: SequentTree (PropForm Int) PropRule
+s1Tree = prove s1
+
 main :: IO ()
 main = hspec $ do
   describe "Basics" $ do

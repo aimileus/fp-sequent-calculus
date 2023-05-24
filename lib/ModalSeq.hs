@@ -1,3 +1,6 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module ModalSeq where
 
 import PropSeq

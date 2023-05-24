@@ -3,6 +3,7 @@
 
 module PropSeq where
 
+import Data.List
 import Sequent
 
 type Prop = Int
@@ -38,3 +39,7 @@ instance Expandable (PropForm p) PropRule where
   expandRight phi@(P _) = AtomicR phi
   expandRight phi@Top = AtomicR phi
   expandRight phi@Bot = AtomicR phi
+
+instance (Eq p) => Verfiable (PropForm p) where
+  isAxiom :: Sequent (PropForm p) -> Bool
+  isAxiom (S a c) = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)

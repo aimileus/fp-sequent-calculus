@@ -1,5 +1,5 @@
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImpredicativeTypes #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Sequent where
 
@@ -18,9 +18,6 @@ data SequentTree f r
   | Application r (Sequent f) [SequentTree f r]
   deriving (Eq, Show)
 
-axiom :: (Eq f) => Sequent f -> Bool
-axiom s = not . null $ ante s `intersect` cons s
-
 simpleMerge :: Sequent p -> Sequent p -> Sequent p
 simpleMerge (S fs ps) (S fs' ps') = S (fs ++ fs') (ps ++ ps')
 
@@ -35,6 +32,9 @@ fromCons = S []
 
 data Expansion f r
   = Exp
+      -- Make the Sequent type use in the merge function independent of f and r.
+      -- Now it is slightly more convenient to convert sequents between formula
+      -- types.
       { merge :: forall a. Sequent a -> Sequent a -> Sequent a,
         exps :: [Sequent f],
         rule :: r
@@ -47,9 +47,12 @@ data Expanded f r = Expd
     rule' :: r
   }
 
-class Expandable f r where
+class Expandable f r | f -> r where
   expandLeft :: f -> Expansion f r
   expandRight :: f -> Expansion f r
+
+class Verfiable f where
+  isAxiom :: Sequent f -> Bool
 
 applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
@@ -72,5 +75,5 @@ prove s = tree expanded
     tree (Just (Expd e r)) = Application r s (prove <$> e)
 
 verifyTree :: (Eq f) => SequentTree f r -> Bool
-verifyTree (Axiom (S ante cons)) = (not . null) (ante `intersect` cons)
+verifyTree (Axiom (S a c)) = (not . null) (a `intersect` c)
 verifyTree (Application _ _ ys) = all verifyTree ys

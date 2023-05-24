@@ -6,8 +6,5 @@ cradle:
     - path: "./exec/Main.lhs"
       component: "seqcal:exe:myprogram"
 
-    - path: "./exec/Paths_report.hs"
-      component: "seqcal:exe:myprogram"
-
     - path: "./test"
       component: "seqcal:test:simpletests"
