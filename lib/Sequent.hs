@@ -1,5 +1,4 @@
 {-# LANGUAGE ImpredicativeTypes #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Sequent where
@@ -8,36 +7,16 @@ import Data.List
 import Data.Maybe
 import Utils
 
-type Prop = Int
-
-data PropForm p
-  = P p
-  | Neg (PropForm p)
-  | Conj (PropForm p) (PropForm p)
-  | Disj (PropForm p) (PropForm p)
-  | Impl (PropForm p) (PropForm p)
-  deriving (Eq, Show)
-
 data Sequent f = S
   { ante :: [f],
     cons :: [f]
   }
   deriving (Eq, Show)
 
-data PropRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
-  deriving (Eq, Show, Enum)
-
 data SequentTree f r
   = Axiom (Sequent f)
   | Application r (Sequent f) [SequentTree f r]
   deriving (Eq, Show)
-
-isProp :: PropForm p -> Bool
-isProp (P _) = True
-isProp _ = False
-
-simple :: Sequent (PropForm p) -> Bool
-simple s = all (all isProp) [ante s, cons s]
 
 axiom :: (Eq f) => Sequent f -> Bool
 axiom s = not . null $ ante s `intersect` cons s
@@ -67,21 +46,6 @@ data Expanded f r = Expd
 class Expandable f r where
   expandLeft :: f -> Expansion f r
   expandRight :: f -> Expansion f r
-
-instance Expandable (PropForm p) PropRule where
-  expandLeft :: PropForm p -> Expansion (PropForm p) PropRule
-  expandLeft (phi `Impl` psi) = Exp [fromAnte [psi], fromCons [phi]] ImplL
-  expandLeft (phi `Disj` psi) = (Exp . fmap fromAnte) [[phi], [psi]] DisL
-  expandLeft (phi `Conj` psi) = Exp [fromAnte [phi, psi]] ConL
-  expandLeft (Neg phi) = Exp [fromCons [phi]] NegL
-  expandLeft phi@(P _) = AtomicL phi
-
-  expandRight :: PropForm p -> Expansion (PropForm p) PropRule
-  expandRight (phi `Impl` psi) = Exp [S [phi] [psi]] ImplR
-  expandRight (phi `Conj` psi) = Exp [fromCons [psi], fromCons [phi]] ConR
-  expandRight (phi `Disj` psi) = Exp [fromCons [phi, psi]] DisR
-  expandRight (Neg phi) = Exp [fromCons [phi]] NegR
-  expandRight phi@(P _) = AtomicR phi
 
 applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
 applyExpansion s (Exp e r) = Just $ Expd (mergeSequent s <$> e) r
