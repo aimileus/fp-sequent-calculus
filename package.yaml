@@ -30,4 +30,3 @@ tests:
       - seqcal
       - QuickCheck
       - hspec
-      - GHC
