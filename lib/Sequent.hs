@@ -7,15 +7,13 @@ import Data.Maybe
 
 type Prop = Int
 
-data Formula p
+data PropForm p
   = P p
-  | Neg (Formula p)
-  | Conj (Formula p) (Formula p)
-  | Disj (Formula p) (Formula p)
-  | Impl (Formula p) (Formula p)
+  | Neg (PropForm p)
+  | Conj (PropForm p) (PropForm p)
+  | Disj (PropForm p) (PropForm p)
+  | Impl (PropForm p) (PropForm p)
   deriving (Eq, Show)
-
-type PropFormula = Formula Prop
 
 data Sequent f = S
   { ante :: [f],
@@ -23,19 +21,19 @@ data Sequent f = S
   }
   deriving (Eq, Show)
 
-data Rule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
+data PropRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
-data SequentTree f
+data SequentTree f r
   = Axiom (Sequent f)
-  | Application Rule (Sequent f) [SequentTree f]
+  | Application r (Sequent f) [SequentTree f r]
   deriving (Eq, Show)
 
-isProp :: Formula p -> Bool
+isProp :: PropForm p -> Bool
 isProp (P _) = True
 isProp _ = False
 
-simple :: Sequent (Formula p) -> Bool
+simple :: Sequent (PropForm p) -> Bool
 simple s = all (all isProp) [ante s, cons s]
 
 axiom :: (Eq f) => Sequent f -> Bool
@@ -50,20 +48,20 @@ fromAnte fs = S fs []
 fromCons :: [f] -> Sequent f
 fromCons = S []
 
-data Expansion f
+data Expansion f r
   = Exp
       { exps :: [Sequent f],
-        rule :: Rule
+        rule :: r
       }
   | AtomicL f
   | AtomicR f
 
-data Expanded f = Expd
+data Expanded f r = Expd
   { expds :: [Sequent f],
-    rule' :: Rule
+    rule' :: r
   }
 
-applyExpansion :: Sequent f -> Expansion f -> Maybe (Expanded f)
+applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
 applyExpansion s (Exp e r) = Just $ Expd (mergeSequent s <$> e) r
 applyExpansion _ (AtomicL _) = Nothing
 applyExpansion _ (AtomicR _) = Nothing
@@ -73,19 +71,19 @@ applyExpansion _ (AtomicR _) = Nothing
 -- applyExpansion (AtomicL f) = [fromAnte f]
 -- applyExpansion (AtomicR f) = [fromCons f]
 
-isAtomic :: Expansion f -> Bool
+isAtomic :: Expansion f r -> Bool
 isAtomic (AtomicL _) = True
 isAtomic (AtomicR _) = True
 isAtomic _ = False
 
-expandLeft :: Formula p -> Expansion (Formula p)
+expandLeft :: PropForm p -> Expansion (PropForm p) PropRule
 expandLeft (phi `Impl` psi) = Exp [fromAnte [psi], fromCons [phi]] ImplL
 expandLeft (phi `Disj` psi) = (Exp . fmap fromAnte) [[phi], [psi]] DisL
 expandLeft (phi `Conj` psi) = Exp [fromAnte [phi, psi]] ConL
 expandLeft (Neg phi) = Exp [fromCons [phi]] NegL
 expandLeft phi@(P _) = AtomicL phi
 
-expandRight :: Formula p -> Expansion (Formula p)
+expandRight :: PropForm p -> Expansion (PropForm p) PropRule
 expandRight (phi `Impl` psi) = Exp [S [phi] [psi]] ImplR
 expandRight (phi `Conj` psi) = Exp [fromCons [psi], fromCons [phi]] ConR
 expandRight (phi `Disj` psi) = Exp [fromCons [phi, psi]] DisR
@@ -93,8 +91,8 @@ expandRight (Neg phi) = Exp [fromCons [phi]] NegR
 expandRight phi@(P _) = AtomicR phi
 
 -- TODO: use zipper lists here instead of this mildly computationally intensive way.
-extractFormula :: Sequent (Formula p) -> [(Sequent (Formula p), Expansion (Formula p))]
-extractFormula (S l r) = lefts ++ rights
+extractPropForm :: Sequent (PropForm p) -> [(Sequent (PropForm p), Expansion (PropForm p) PropRule)]
+extractPropForm (S l r) = lefts ++ rights
   where
     lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
     rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
@@ -109,14 +107,14 @@ mapFst f (x, y) = (f x, y)
 mapSnd :: (b -> c) -> (a, b) -> (a, c)
 mapSnd = fmap
 
-prove :: Sequent (Formula p) -> SequentTree (Formula p)
+prove :: Sequent (PropForm p) -> SequentTree (PropForm p) PropRule
 prove s = tree expanded
   where
-    expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractFormula s)
+    expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractPropForm s)
 
     tree Nothing = Axiom s
     tree (Just (Expd e r)) = Application r s (prove <$> e)
 
-verifyTree :: (Eq f) => SequentTree f -> Bool
+verifyTree :: (Eq f) => SequentTree f r -> Bool
 verifyTree (Axiom (S ante cons)) = (not . null) (ante `intersect` cons)
 verifyTree (Application _ _ ys) = all verifyTree ys
