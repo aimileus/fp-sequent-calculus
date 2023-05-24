@@ -25,5 +25,5 @@ instance Expandable (PropForm p) InRule where
   expandRight phi@Top = AtomicR phi
   expandRight phi@Bot = AtomicR phi
 
-mergeRightImpl :: Sequent (PropForm p) -> Sequent (PropForm p) -> Sequent (PropForm p)
+mergeRightImpl :: Sequent a -> Sequent a -> Sequent a
 mergeRightImpl (S a1 _c1) (S a2 c2) = S (a1 ++ a2) c2

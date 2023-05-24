@@ -35,7 +35,7 @@ fromCons = S []
 
 data Expansion f r
   = Exp
-      { merge :: Sequent f -> Sequent f -> Sequent f,
+      { merge :: forall a. Sequent a -> Sequent a -> Sequent a,
         exps :: [Sequent f],
         rule :: r
       }
