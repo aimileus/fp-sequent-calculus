@@ -21,8 +21,11 @@ data SequentTree f r
 axiom :: (Eq f) => Sequent f -> Bool
 axiom s = not . null $ ante s `intersect` cons s
 
-mergeSequent :: Sequent p -> Sequent p -> Sequent p
-mergeSequent (S fs ps) (S fs' ps') = S (fs ++ fs') (ps ++ ps')
+simpleMerge :: Sequent p -> Sequent p -> Sequent p
+simpleMerge (S fs ps) (S fs' ps') = S (fs ++ fs') (ps ++ ps')
+
+simpleExp :: [Sequent f] -> r -> Expansion f r
+simpleExp = Exp simpleMerge
 
 fromAnte :: [f] -> Sequent f
 fromAnte fs = S fs []
@@ -32,7 +35,8 @@ fromCons = S []
 
 data Expansion f r
   = Exp
-      { exps :: [Sequent f],
+      { merge :: Sequent f -> Sequent f -> Sequent f,
+        exps :: [Sequent f],
         rule :: r
       }
   | AtomicL f
@@ -48,7 +52,7 @@ class Expandable f r where
   expandRight :: f -> Expansion f r
 
 applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
-applyExpansion s (Exp e r) = Just $ Expd (mergeSequent s <$> e) r
+applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
 applyExpansion _ (AtomicL _) = Nothing
 applyExpansion _ (AtomicR _) = Nothing
 
