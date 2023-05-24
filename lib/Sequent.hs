@@ -1,4 +1,6 @@
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Sequent where
 
@@ -61,6 +63,25 @@ data Expanded f r = Expd
     rule' :: r
   }
 
+class Expandable f r where
+  expandLeft :: f -> Expansion f r
+  expandRight :: f -> Expansion f r
+
+instance Expandable (PropForm p) PropRule where
+  expandLeft :: PropForm p -> Expansion (PropForm p) PropRule
+  expandLeft (phi `Impl` psi) = Exp [fromAnte [psi], fromCons [phi]] ImplL
+  expandLeft (phi `Disj` psi) = (Exp . fmap fromAnte) [[phi], [psi]] DisL
+  expandLeft (phi `Conj` psi) = Exp [fromAnte [phi, psi]] ConL
+  expandLeft (Neg phi) = Exp [fromCons [phi]] NegL
+  expandLeft phi@(P _) = AtomicL phi
+
+  expandRight :: PropForm p -> Expansion (PropForm p) PropRule
+  expandRight (phi `Impl` psi) = Exp [S [phi] [psi]] ImplR
+  expandRight (phi `Conj` psi) = Exp [fromCons [psi], fromCons [phi]] ConR
+  expandRight (phi `Disj` psi) = Exp [fromCons [phi, psi]] DisR
+  expandRight (Neg phi) = Exp [fromCons [phi]] NegR
+  expandRight phi@(P _) = AtomicR phi
+
 applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
 applyExpansion s (Exp e r) = Just $ Expd (mergeSequent s <$> e) r
 applyExpansion _ (AtomicL _) = Nothing
@@ -76,23 +97,9 @@ isAtomic (AtomicL _) = True
 isAtomic (AtomicR _) = True
 isAtomic _ = False
 
-expandLeft :: PropForm p -> Expansion (PropForm p) PropRule
-expandLeft (phi `Impl` psi) = Exp [fromAnte [psi], fromCons [phi]] ImplL
-expandLeft (phi `Disj` psi) = (Exp . fmap fromAnte) [[phi], [psi]] DisL
-expandLeft (phi `Conj` psi) = Exp [fromAnte [phi, psi]] ConL
-expandLeft (Neg phi) = Exp [fromCons [phi]] NegL
-expandLeft phi@(P _) = AtomicL phi
-
-expandRight :: PropForm p -> Expansion (PropForm p) PropRule
-expandRight (phi `Impl` psi) = Exp [S [phi] [psi]] ImplR
-expandRight (phi `Conj` psi) = Exp [fromCons [psi], fromCons [phi]] ConR
-expandRight (phi `Disj` psi) = Exp [fromCons [phi, psi]] DisR
-expandRight (Neg phi) = Exp [fromCons [phi]] NegR
-expandRight phi@(P _) = AtomicR phi
-
 -- TODO: use zipper lists here instead of this mildly computationally intensive way.
-extractPropForm :: Sequent (PropForm p) -> [(Sequent (PropForm p), Expansion (PropForm p) PropRule)]
-extractPropForm (S l r) = lefts ++ rights
+extractForm :: (Expandable f r) => Sequent f -> [(Sequent f, Expansion f r)]
+extractForm (S l r) = lefts ++ rights
   where
     lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
     rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
@@ -107,10 +114,10 @@ mapFst f (x, y) = (f x, y)
 mapSnd :: (b -> c) -> (a, b) -> (a, c)
 mapSnd = fmap
 
-prove :: Sequent (PropForm p) -> SequentTree (PropForm p) PropRule
+prove :: (Expandable f r) => Sequent f -> SequentTree f r
 prove s = tree expanded
   where
-    expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractPropForm s)
+    expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
 
     tree Nothing = Axiom s
     tree (Just (Expd e r)) = Application r s (prove <$> e)
