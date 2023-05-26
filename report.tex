@@ -11,15 +11,14 @@
 \maketitle
 
 \begin{abstract}
-Sequent calculus is a way to formalize natural deduction proofs. We give a
-Haskell library for the generation of Sequent Calculus proofs. The proof checker
-has an implementation for the generation of proofs for (classical) propositional
-logic. Most of the functions are generic so they should be (relatively) easily
-extendable to other logics.
+    Sequent calculus is a way to formalize natural deduction proofs. We give a
+    Haskell library for the generation of Sequent Calculus proofs. The proof checker
+    has an implementation for the generation of proofs for (classical) propositional
+    logic. Most of the functions are generic so they should be (relatively) easily
+    extendable to other logics.
 \end{abstract}
 
-\vfill
-
+\newpage
 \tableofcontents
 
 \clearpage
@@ -27,17 +26,11 @@ extendable to other logics.
 % We include one file for each section. The ones containing code should
 % be called something.lhs and also mentioned in the .cabal file.
 
-\input{Howto.tex}
+\input{lib/Sequent.lhs}
 
-\input{lib/Basics.lhs}
+\input{lib/PropSeq.lhs}
 
-\input{exec/Main.lhs}
-
-\input{test/simpletests.lhs}
-
-\input{Profiling.tex}
-
-\input{Conclusion.tex}
+\cite{Knuth11CombAlg}
 
 \addcontentsline{toc}{section}{Bibliography}
 \bibliographystyle{alpha}

@@ -1,3 +1,4 @@
+\begin{code}
 module Utils where
 
 holes :: [a] -> [([a], a)]
@@ -9,3 +10,5 @@ mapFst f (x, y) = (f x, y)
 
 mapSnd :: (b -> c) -> (a, b) -> (a, c)
 mapSnd = fmap
+
+\end{code}
