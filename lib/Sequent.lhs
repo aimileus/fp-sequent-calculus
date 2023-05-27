@@ -19,8 +19,10 @@ of helper functions:
 module Sequent where
 
 import Data.Maybe
+import Data.List
 import Test.QuickCheck (Arbitrary (arbitrary))
 import Utils
+import Latex
 
 data Sequent f = S
   { ante :: [f],
@@ -127,4 +129,17 @@ instance (Arbitrary f) => Arbitrary (Sequent f) where
 instance (Arbitrary f, Expandable f r) => Arbitrary (SequentTree f r) where
   arbitrary = prove . fromCons . return <$> arbitrary
 
+\end{code}
+
+\begin{code}
+instance (ToLatex f) => ToLatex (Sequent f) where
+  toLatex :: Sequent f -> String
+  toLatex (S fs fs') = toCommaSeparated (toLatex <$> fs) ++ "\\Rightarrow " ++ toCommaSeparated (toLatex <$> fs')
+    where
+      toCommaSeparated :: [String] -> String
+      toCommaSeparated = intercalate ","
+
+instance (ToLatex f, ToLatex r) => ToLatex (SequentTree f r) where
+  toLatex (Axiom s) = "\\hypo{" ++ toLatex s ++ "}"
+  toLatex (Application rule s ss) = unlines $ (toLatex <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[" ++ toLatex rule ++ "]" ++ "{" ++ toLatex s ++ "}"]
 \end{code}

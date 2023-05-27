@@ -21,6 +21,7 @@ module PropSeq where
 import Data.List
 import Sequent
 import Test.QuickCheck (Arbitrary (arbitrary), oneof, sized)
+import Latex
 
 type Prop = Int
 
@@ -33,6 +34,14 @@ data PropForm p
   | Bot
   | Top
   deriving (Eq, Show)
+
+(-->) :: PropForm p -> PropForm p -> PropForm p
+(-->) = Impl
+infixr 4 -->
+
+(&) :: PropForm p -> PropForm p -> PropForm p
+(&) = Conj
+infixr 5 &
 \end{code}
 
 \subsubsection{Propositional sequent calculus}
@@ -146,4 +155,25 @@ instance (Arbitrary p) => Arbitrary (PropForm p) where
             Conj <$> f (n `div` 3) <*> f (n `div` 3),
             Disj <$> f (n `div` 3) <*> f (n `div` 3)
           ]
+\end{code}
+
+\begin{code}
+instance ToLatex PropRule where
+  toLatex ConL = "\\(\\wedge L\\)"
+  toLatex ConR = "\\(\\wedge R\\)"
+  toLatex DisL = "\\(\\vee L\\)"
+  toLatex DisR = "\\(\\vee R\\)"
+  toLatex NegL = "\\(\\neg L\\)"
+  toLatex NegR = "\\(\\neg R\\)"
+  toLatex ImplL = "\\(\\to L\\)"
+  toLatex ImplR = "\\(\\to R\\)"
+
+instance ToLatex p => ToLatex (PropForm p) where
+  toLatex (P p) = "p_{" ++ toLatex p ++ "}"
+  toLatex Top = "\\top "
+  toLatex Bot = "\\bot "
+  toLatex (Conj phi psi) = "(" ++ toLatex phi ++ ")" ++ "\\wedge " ++ "(" ++ toLatex psi ++ ")"
+  toLatex (Disj phi psi) = "(" ++ toLatex phi ++ ")" ++ "\\vee " ++ "(" ++ toLatex psi ++ ")"
+  toLatex (Impl phi psi) = "(" ++ toLatex phi ++ ")" ++ "\\to " ++ "(" ++ toLatex psi ++ ")"
+  toLatex (Neg phi) = "\\neg " ++ "(" ++ toLatex phi ++ ")"
 \end{code}
