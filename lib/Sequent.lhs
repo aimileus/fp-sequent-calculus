@@ -1,21 +1,33 @@
+\section{Sequent calculus}
+
+There are many proof systems for all different sorts of logics. We have chosen
+to implement generate proofs using a system called sequent calculus. A proof in
+sequent calculus unsurprisingly consists of sequents: two finite multisets of
+formulas \(\Gamma,\Delta\) written as \(\sequent{\Gamma}{\Delta}\). This can be
+interpreted as a single formula by taking the conjunct of \(\Gamma\) and the
+disjunct of \(\Delta\) and joining them using an implication:
+\(\bigwedge\Gamma\to\bigvee\Delta\). We say a sequent is satisfiable if
+this formula is.
+
+We implement sequents in the following manner in Haskell together with a couple
+of helper functions:
+
+\begin{code}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 
 module Sequent where
 
 import Data.Maybe
+import Data.List
 import Test.QuickCheck (Arbitrary (arbitrary))
 import Utils
+import Latex
 
 data Sequent f = S
   { ante :: [f],
     cons :: [f]
   }
-  deriving (Eq, Show)
-
-data SequentTree f r
-  = Axiom (Sequent f)
-  | Application r (Sequent f) [SequentTree f r]
   deriving (Eq, Show)
 
 simpleMerge :: Sequent p -> Sequent p -> Sequent p
@@ -29,6 +41,31 @@ fromAnte fs = S fs []
 
 fromCons :: [f] -> Sequent f
 fromCons = S []
+\end{code}
+
+Our main concern in this project is proving sequents, which requires a notion of
+provability. Just like any other proof system, there are axioms and rules to
+create new things from axioms.
+
+An axiom is simply just a single sequent which we assume to always be true. A
+rule is a way to combine one or multiple sequents which have already been proven
+to prove one single new sequent. This will be written as
+\begin{mathpar}
+    \inferrule{\sequent{\Gamma_{1}}{\Delta_{1}}\\\ldots\\\sequent{\Gamma_{n}}{\Delta_{n}}}{\sequent{\Gamma}{\Delta}}R.
+\end{mathpar}
+In practice, proofs in sequent calculus are often given as trees. Given a
+sequent \(\sequent{\Gamma}{\Delta}\) that we want to prove we draw a tree of
+sequents above it where each node of the tree represents an application of a
+rule. Because a proof is inherently finite, all leafs of a correct proof must
+be axioms.
+
+This gives a very natural way to represent a sequent calculus proof in Haskell
+as well: our proofs are trees where sequents are nodes and leafs are axioms.
+\begin{code}
+data SequentTree f r
+  = Axiom (Sequent f)
+  | Application r (Sequent f) [SequentTree f r]
+  deriving (Eq, Show)
 
 data Expansion f r
   = Exp
@@ -91,3 +128,18 @@ instance (Arbitrary f) => Arbitrary (Sequent f) where
 
 instance (Arbitrary f, Expandable f r) => Arbitrary (SequentTree f r) where
   arbitrary = prove . fromCons . return <$> arbitrary
+
+\end{code}
+
+\begin{code}
+instance (ToLatex f) => ToLatex (Sequent f) where
+  toLatex :: Sequent f -> String
+  toLatex (S fs fs') = toCommaSeparated (toLatex <$> fs) ++ "\\Rightarrow " ++ toCommaSeparated (toLatex <$> fs')
+    where
+      toCommaSeparated :: [String] -> String
+      toCommaSeparated = intercalate ","
+
+instance (ToLatex f, ToLatex r) => ToLatex (SequentTree f r) where
+  toLatex (Axiom s) = "\\hypo{" ++ toLatex s ++ "}"
+  toLatex (Application rule s ss) = unlines $ (toLatex <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[" ++ toLatex rule ++ "]" ++ "{" ++ toLatex s ++ "}"]
+\end{code}

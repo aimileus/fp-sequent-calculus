@@ -1,3 +1,4 @@
+\begin{code}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -28,3 +29,5 @@ instance Expandable (ModalForm p) ModalRule where
   expandRight (Dia _f) = undefined
   expandRight (Box _f) = undefined
   expandRight (Prop f) = expPropToModal $ expandRight f
+
+\end{code}
