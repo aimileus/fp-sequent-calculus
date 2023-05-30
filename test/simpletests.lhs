@@ -25,7 +25,7 @@ The second and third test use QuickCheck.
 validForms :: [PropForm Int]
 validForms =
   [
-    P 1 `Disj` (Neg (P 1)),
+    P 1 `Disj` Neg (P 1),
     Neg (P 1 `Conj` Neg (P 1)),
     Top,
     ((P 1 `Impl` P 2) `Conj` (P 2 `Impl` P 3)) `Impl` (P 1 `Impl` P 3)
@@ -43,7 +43,7 @@ invalidForms :: [PropForm Int]
 invalidForms = [
     P 1,
     P 1 `Conj` P 2,
-    P 1 `Impl` (Neg $ P 1),
+    P 1 `Impl` Neg (P 1),
     Bot
   ]
 
