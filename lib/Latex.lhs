@@ -1,4 +1,6 @@
 \begin{code}
+{-# LANGUAGE InstanceSigs #-}
+
 module Latex where
 
 class ToLatex a where

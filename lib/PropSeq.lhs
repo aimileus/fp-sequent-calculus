@@ -20,6 +20,14 @@ module PropSeq where
 
 import Data.List
 import Sequent
+    ( fromAnte,
+      fromCons,
+      simpleExp,
+      Expandable(..),
+      Expansion(..),
+      Sequent(S),
+      SequentTree,
+      Verfiable(..) )
 import Test.QuickCheck (Arbitrary (arbitrary), oneof, sized)
 import Latex
 

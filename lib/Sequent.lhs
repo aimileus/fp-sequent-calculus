@@ -15,6 +15,7 @@ of helper functions:
 \begin{code}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Sequent where
 
@@ -141,5 +142,5 @@ instance (ToLatex f) => ToLatex (Sequent f) where
 
 instance (ToLatex f, ToLatex r) => ToLatex (SequentTree f r) where
   toLatex (Axiom s) = "\\hypo{" ++ toLatex s ++ "}"
-  toLatex (Application rule s ss) = unlines $ (toLatex <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[" ++ toLatex rule ++ "]" ++ "{" ++ toLatex s ++ "}"]
+  toLatex (Application r s ss) = unlines $ (toLatex <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[" ++ toLatex r ++ "]" ++ "{" ++ toLatex s ++ "}"]
 \end{code}
