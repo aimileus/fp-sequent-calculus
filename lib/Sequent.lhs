@@ -17,7 +17,22 @@ of helper functions:
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Sequent where
+module Sequent(
+      Sequent(..),
+      simpleMerge,
+      fromAnte,
+      fromCons,
+      simpleExp,
+      seqSimple,
+      prove,
+      leafs,
+      verifyTree,
+      Expandable(..),
+      Expansion(..),
+
+      SequentTree,
+      Verfiable(..) )
+   where
 
 import Data.Maybe
 import Data.List
@@ -80,10 +95,7 @@ data Expansion f r
   | AtomicL f
   | AtomicR f
 
-data Expanded f r = Expd
-  { expds :: [Sequent f],
-    rule' :: r
-  }
+data Expanded f r = Expd [Sequent f] r
 
 class Expandable f r | f -> r where
   expandLeft :: f -> Expansion f r

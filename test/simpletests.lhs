@@ -11,6 +11,14 @@ and test some properties.
 module Main where
 
 import Sequent
+    ( Sequent(S, cons, ante),
+      simpleMerge,
+      fromAnte,
+      fromCons,
+      seqSimple,
+      prove,
+      leafs,
+      verifyTree )
 import PropSeq
 
 import Test.Hspec
