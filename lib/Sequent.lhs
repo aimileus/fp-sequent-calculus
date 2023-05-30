@@ -18,10 +18,9 @@ of helper functions:
 {-# LANGUAGE InstanceSigs #-}
 
 module Sequent(
+      Sequent(..),
       SimpleSequent(..),
       simpleMerge,
-      fromAnte,
-      fromCons,
       simpleExp,
       seqSimple,
       prove,
@@ -39,23 +38,25 @@ import Test.QuickCheck (Arbitrary (arbitrary))
 import Utils
 import Latex
 
-data SimpleSequent f = S
-  { ante :: [f],
-    cons :: [f]
-  }
-  deriving (Eq, Show)
+class Sequent s where
+  ante :: s f -> [f]
+  cons :: s f -> [f]
+  fromAnte :: [f] -> s f
+  fromCons :: [f] -> s f
+
+data SimpleSequent f = S [f] [f] deriving (Eq, Show)
+
+instance Sequent SimpleSequent where
+  ante (S a _) = a
+  cons (S _ c) = c
+  fromAnte xs = S xs []
+  fromCons = S []
 
 simpleMerge :: SimpleSequent p -> SimpleSequent p -> SimpleSequent p
 simpleMerge (S fs ps) (S fs' ps') = S (fs ++ fs') (ps ++ ps')
 
 simpleExp :: [SimpleSequent f] -> r -> Expansion f r
 simpleExp = Exp simpleMerge
-
-fromAnte :: [f] -> SimpleSequent f
-fromAnte fs = S fs []
-
-fromCons :: [f] -> SimpleSequent f
-fromCons = S []
 \end{code}
 
 Our main concern in this project is proving sequents, which requires a notion of
