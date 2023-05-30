@@ -25,7 +25,7 @@ import Sequent
       simpleExp,
       Expandable(..),
       Expansion(..),
-      Sequent(S),
+      SimpleSequent(S),
       SequentTree,
       Verfiable(..) )
 import Test.QuickCheck (Arbitrary (arbitrary), oneof, sized)
@@ -112,7 +112,7 @@ We give a couple of examples of proofs of sequents:
 We implement the types from the sequent module in order to use its functions to
 create proofs:
 \begin{code}
-type PSequent p = Sequent (PropForm p)
+type PSequent p = SimpleSequent (PropForm p)
 
 type PSeqTree p = SequentTree (PropForm p) PropRule
 
@@ -139,7 +139,7 @@ instance Expandable (PropForm p) PropRule where
   expandRight phi@Bot = AtomicR phi
 
 instance (Eq p) => Verfiable (PropForm p) where
-  verifyAxiom :: Sequent (PropForm p) -> Bool
+  verifyAxiom :: SimpleSequent (PropForm p) -> Bool
   verifyAxiom (S a c) = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
 
   formSimple :: PropForm p -> Bool

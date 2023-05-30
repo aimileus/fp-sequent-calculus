@@ -31,7 +31,7 @@ instance Expandable (InForm p) InRule where
   expandRight phi@(In Top) = AtomicR phi
   expandRight phi@(In Bot) = AtomicR phi
 
-mergeRightImpl :: Sequent a -> Sequent a -> Sequent a
+mergeRightImpl :: SimpleSequent a -> SimpleSequent a -> SimpleSequent a
 mergeRightImpl (S a1 _c1) (S a2 c2) = S (a1 ++ a2) c2
 
 \end{code}

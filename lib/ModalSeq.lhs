@@ -11,7 +11,7 @@ data ModalForm p = Dia (ModalForm p) | Box (ModalForm p) | Prop (PropForm p)
 
 data ModalRule = DiaL | DiaR | BoxL | BoxR | PropR PropRule
 
-seqPropToModal :: Sequent (PropForm p) -> Sequent (ModalForm p)
+seqPropToModal :: SimpleSequent (PropForm p) -> SimpleSequent (ModalForm p)
 seqPropToModal (S a c) = S (Prop <$> a) (Prop <$> c)
 
 expPropToModal :: Expansion (PropForm p) PropRule -> Expansion (ModalForm p) ModalRule

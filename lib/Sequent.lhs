@@ -18,7 +18,7 @@ of helper functions:
 {-# LANGUAGE InstanceSigs #-}
 
 module Sequent(
-      Sequent(..),
+      SimpleSequent(..),
       simpleMerge,
       fromAnte,
       fromCons,
@@ -29,7 +29,6 @@ module Sequent(
       verifyTree,
       Expandable(..),
       Expansion(..),
-
       SequentTree,
       Verfiable(..) )
    where
@@ -40,22 +39,22 @@ import Test.QuickCheck (Arbitrary (arbitrary))
 import Utils
 import Latex
 
-data Sequent f = S
+data SimpleSequent f = S
   { ante :: [f],
     cons :: [f]
   }
   deriving (Eq, Show)
 
-simpleMerge :: Sequent p -> Sequent p -> Sequent p
+simpleMerge :: SimpleSequent p -> SimpleSequent p -> SimpleSequent p
 simpleMerge (S fs ps) (S fs' ps') = S (fs ++ fs') (ps ++ ps')
 
-simpleExp :: [Sequent f] -> r -> Expansion f r
+simpleExp :: [SimpleSequent f] -> r -> Expansion f r
 simpleExp = Exp simpleMerge
 
-fromAnte :: [f] -> Sequent f
+fromAnte :: [f] -> SimpleSequent f
 fromAnte fs = S fs []
 
-fromCons :: [f] -> Sequent f
+fromCons :: [f] -> SimpleSequent f
 fromCons = S []
 \end{code}
 
@@ -79,8 +78,8 @@ This gives a very natural way to represent a sequent calculus proof in Haskell
 as well: our proofs are trees where sequents are nodes and leafs are axioms.
 \begin{code}
 data SequentTree f r
-  = Axiom (Sequent f)
-  | Application r (Sequent f) [SequentTree f r]
+  = Axiom (SimpleSequent f)
+  | Application r (SimpleSequent f) [SequentTree f r]
   deriving (Eq, Show)
 
 data Expansion f r
@@ -88,39 +87,39 @@ data Expansion f r
       -- Make the Sequent type use in the merge function independent of f and r.
       -- Now it is slightly more convenient to convert sequents between formula
       -- types.
-      { merge :: forall a. Sequent a -> Sequent a -> Sequent a,
-        exps :: [Sequent f],
+      { merge :: forall a. SimpleSequent a -> SimpleSequent a -> SimpleSequent a,
+        exps :: [SimpleSequent f],
         rule :: r
       }
   | AtomicL f
   | AtomicR f
 
-data Expanded f r = Expd [Sequent f] r
+data Expanded f r = Expd [SimpleSequent f] r
 
 class Expandable f r | f -> r where
   expandLeft :: f -> Expansion f r
   expandRight :: f -> Expansion f r
 
 class Verfiable f where
-  verifyAxiom :: Sequent f -> Bool
+  verifyAxiom :: SimpleSequent f -> Bool
   formSimple :: f -> Bool
 
-seqSimple :: (Verfiable f) => Sequent f -> Bool
+seqSimple :: (Verfiable f) => SimpleSequent f -> Bool
 seqSimple (S a c) = all formSimple a && all formSimple c
 
-applyExpansion :: Sequent f -> Expansion f r -> Maybe (Expanded f r)
+applyExpansion :: SimpleSequent f -> Expansion f r -> Maybe (Expanded f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
 applyExpansion _ (AtomicL _) = Nothing
 applyExpansion _ (AtomicR _) = Nothing
 
 -- TODO: use zipper lists here instead of this mildly computationally intensive way.
-extractForm :: (Expandable f r) => Sequent f -> [(Sequent f, Expansion f r)]
+extractForm :: (Expandable f r) => SimpleSequent f -> [(SimpleSequent f, Expansion f r)]
 extractForm (S l r) = lefts ++ rights
   where
     lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
     rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
 
-prove :: (Expandable f r) => Sequent f -> SequentTree f r
+prove :: (Expandable f r) => SimpleSequent f -> SequentTree f r
 prove s = tree expanded
   where
     expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
@@ -128,7 +127,7 @@ prove s = tree expanded
     tree Nothing = Axiom s
     tree (Just (Expd e r)) = Application r s (prove <$> e)
 
-leafs :: SequentTree f r -> [Sequent f]
+leafs :: SequentTree f r -> [SimpleSequent f]
 leafs (Axiom f) = return f
 leafs (Application _ _ y) = y >>= leafs
 
@@ -136,7 +135,7 @@ verifyTree :: (Verfiable f) => SequentTree f r -> Bool
 verifyTree (Axiom f) = verifyAxiom f
 verifyTree (Application _ _ ys) = all verifyTree ys
 
-instance (Arbitrary f) => Arbitrary (Sequent f) where
+instance (Arbitrary f) => Arbitrary (SimpleSequent f) where
   arbitrary = S <$> arbitrary <*> arbitrary
 
 instance (Arbitrary f, Expandable f r) => Arbitrary (SequentTree f r) where
@@ -145,8 +144,8 @@ instance (Arbitrary f, Expandable f r) => Arbitrary (SequentTree f r) where
 \end{code}
 
 \begin{code}
-instance (ToLatex f) => ToLatex (Sequent f) where
-  toLatex :: Sequent f -> String
+instance (ToLatex f) => ToLatex (SimpleSequent f) where
+  toLatex :: SimpleSequent f -> String
   toLatex (S fs fs') = toCommaSeparated (toLatex <$> fs) ++ "\\Rightarrow " ++ toCommaSeparated (toLatex <$> fs')
     where
       toCommaSeparated :: [String] -> String

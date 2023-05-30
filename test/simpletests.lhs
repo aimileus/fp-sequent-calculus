@@ -11,7 +11,7 @@ and test some properties.
 module Main where
 
 import Sequent
-    ( Sequent(S, cons, ante),
+    ( SimpleSequent(S, cons, ante),
       simpleMerge,
       fromAnte,
       fromCons,
