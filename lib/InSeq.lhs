@@ -12,8 +12,8 @@ newtype InForm p = In (PropForm p)
 data InRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
-instance Expandable (InForm p) InRule where
-  expandLeft :: InForm p -> Expansion (InForm p) InRule
+instance Expandable SimpleSequent (InForm p) InRule where
+  expandLeft :: InForm p -> Expansion SimpleSequent (InForm p) InRule
   expandLeft (In (phi `Impl` psi)) = simpleExp [fromAnte [In psi], fromCons [In phi]] ImplL
   expandLeft (In (phi `Disj` psi)) = (simpleExp . fmap fromAnte) [[In phi], [In psi]] DisL
   expandLeft (In (phi `Conj` psi)) = simpleExp [fromAnte [In phi, In psi]] ConL
@@ -22,7 +22,7 @@ instance Expandable (InForm p) InRule where
   expandLeft phi@(In Top) = AtomicL phi
   expandLeft phi@(In Bot) = AtomicL phi
 
-  expandRight :: InForm p -> Expansion (InForm p) InRule
+  expandRight :: InForm p -> Expansion SimpleSequent (InForm p) InRule
   expandRight (In (phi `Impl` psi)) = Exp mergeRightImpl [S [In phi] [In psi]] ImplR
   expandRight (In (phi `Conj` psi)) = simpleExp [fromCons [In psi], fromCons [In phi]] ConR
   expandRight (In (phi `Disj` psi)) = simpleExp [fromCons [In phi, In psi]] DisR

@@ -114,13 +114,13 @@ create proofs:
 \begin{code}
 type PSequent p = SimpleSequent (PropForm p)
 
-type PSeqTree p = SequentTree (PropForm p) PropRule
+type PSeqTree p = SequentTree SimpleSequent (PropForm p) PropRule
 
 data PropRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
-instance Expandable (PropForm p) PropRule where
-  expandLeft :: PropForm p -> Expansion (PropForm p) PropRule
+instance Expandable SimpleSequent (PropForm p) PropRule where
+  expandLeft :: PropForm p -> Expansion SimpleSequent (PropForm p) PropRule
   expandLeft (phi `Impl` psi) = simpleExp [fromAnte [psi], fromCons [phi]] ImplL
   expandLeft (phi `Disj` psi) = (simpleExp . fmap fromAnte) [[phi], [psi]] DisL
   expandLeft (phi `Conj` psi) = simpleExp [fromAnte [phi, psi]] ConL
@@ -129,7 +129,7 @@ instance Expandable (PropForm p) PropRule where
   expandLeft phi@Top = AtomicL phi
   expandLeft phi@Bot = AtomicL phi
 
-  expandRight :: PropForm p -> Expansion (PropForm p) PropRule
+  expandRight :: PropForm p -> Expansion SimpleSequent (PropForm p) PropRule
   expandRight (phi `Impl` psi) = simpleExp [S [phi] [psi]] ImplR
   expandRight (phi `Conj` psi) = simpleExp [fromCons [psi], fromCons [phi]] ConR
   expandRight (phi `Disj` psi) = simpleExp [fromCons [phi, psi]] DisR

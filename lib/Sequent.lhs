@@ -16,6 +16,9 @@ of helper functions:
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 
 module Sequent(
       Sequent(..),
@@ -23,7 +26,6 @@ module Sequent(
       simpleMerge,
       simpleExp,
       seqSimple,
-      prove,
       leafs,
       verifyTree,
       Expandable(..),
@@ -43,6 +45,8 @@ class Sequent s where
   cons :: s f -> [f]
   fromAnte :: [f] -> s f
   fromCons :: [f] -> s f
+  prove :: (Expandable s f r) => s f -> SequentTree s f r
+
 
 data SimpleSequent f = S [f] [f] deriving (Eq, Show)
 
@@ -52,10 +56,25 @@ instance Sequent SimpleSequent where
   fromAnte xs = S xs []
   fromCons = S []
 
+  prove s = tree expanded
+    where
+      expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
+
+      tree Nothing = Axiom s
+      tree (Just (Expd e r)) = Application r s (prove <$> e)
+
+      extractForm :: (Expandable s f r) => SimpleSequent f -> [(SimpleSequent f, Expansion s f r)]
+      extractForm (S l r) = lefts ++ rights
+        where
+          lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
+          rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
+
+
+
 simpleMerge :: SimpleSequent p -> SimpleSequent p -> SimpleSequent p
 simpleMerge (S fs ps) (S fs' ps') = S (fs ++ fs') (ps ++ ps')
 
-simpleExp :: [SimpleSequent f] -> r -> Expansion f r
+simpleExp :: [SimpleSequent f] -> r -> Expansion SimpleSequent f r
 simpleExp = Exp simpleMerge
 \end{code}
 
@@ -78,28 +97,28 @@ be axioms.
 This gives a very natural way to represent a sequent calculus proof in Haskell
 as well: our proofs are trees where sequents are nodes and leafs are axioms.
 \begin{code}
-data SequentTree f r
-  = Axiom (SimpleSequent f)
-  | Application r (SimpleSequent f) [SequentTree f r]
+data SequentTree s f r
+  = Axiom (s f)
+  | Application r (s f) [SequentTree s f r]
   deriving (Eq, Show)
 
-data Expansion f r
+data Expansion s f r
   = Exp
       -- Make the Sequent type use in the merge function independent of f and r.
       -- Now it is slightly more convenient to convert sequents between formula
       -- types.
-      { merge :: forall a. SimpleSequent a -> SimpleSequent a -> SimpleSequent a,
-        exps :: [SimpleSequent f],
+      { merge :: forall a. s a -> s a -> s a,
+        exps :: [s f],
         rule :: r
       }
   | AtomicL f
   | AtomicR f
 
-data Expanded f r = Expd [SimpleSequent f] r
+data Expanded s f r = Expd [s f] r
 
-class Expandable f r | f -> r where
-  expandLeft :: f -> Expansion f r
-  expandRight :: f -> Expansion f r
+class Expandable s f r | f -> r where
+  expandLeft :: f -> Expansion s f r
+  expandRight :: f -> Expansion s f r
 
 class Verfiable f where
   verifyAxiom :: SimpleSequent f -> Bool
@@ -108,38 +127,23 @@ class Verfiable f where
 seqSimple :: (Verfiable f) => SimpleSequent f -> Bool
 seqSimple (S a c) = all formSimple a && all formSimple c
 
-applyExpansion :: SimpleSequent f -> Expansion f r -> Maybe (Expanded f r)
+applyExpansion :: SimpleSequent f -> Expansion SimpleSequent f r -> Maybe (Expanded SimpleSequent f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
 applyExpansion _ (AtomicL _) = Nothing
 applyExpansion _ (AtomicR _) = Nothing
 
--- TODO: use zipper lists here instead of this mildly computationally intensive way.
-extractForm :: (Expandable f r) => SimpleSequent f -> [(SimpleSequent f, Expansion f r)]
-extractForm (S l r) = lefts ++ rights
-  where
-    lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
-    rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
-
-prove :: (Expandable f r) => SimpleSequent f -> SequentTree f r
-prove s = tree expanded
-  where
-    expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
-
-    tree Nothing = Axiom s
-    tree (Just (Expd e r)) = Application r s (prove <$> e)
-
-leafs :: SequentTree f r -> [SimpleSequent f]
+leafs :: SequentTree s f r -> [s f]
 leafs (Axiom f) = return f
 leafs (Application _ _ y) = y >>= leafs
 
-verifyTree :: (Verfiable f) => SequentTree f r -> Bool
+verifyTree :: (Verfiable f) => SequentTree SimpleSequent f r -> Bool
 verifyTree (Axiom f) = verifyAxiom f
 verifyTree (Application _ _ ys) = all verifyTree ys
 
 instance (Arbitrary f) => Arbitrary (SimpleSequent f) where
   arbitrary = S <$> arbitrary <*> arbitrary
 
-instance (Arbitrary f, Expandable f r) => Arbitrary (SequentTree f r) where
+instance (Arbitrary f, Expandable SimpleSequent f r) => Arbitrary (SequentTree SimpleSequent f r) where
   arbitrary = prove . fromCons . return <$> arbitrary
 
 \end{code}
@@ -152,7 +156,38 @@ instance (ToLatex f) => ToLatex (SimpleSequent f) where
       toCommaSeparated :: [String] -> String
       toCommaSeparated = intercalate ","
 
-instance (ToLatex f, ToLatex r) => ToLatex (SequentTree f r) where
+instance (ToLatex f, ToLatex r, ToLatex (s f)) => ToLatex (SequentTree s f r) where
   toLatex (Axiom s) = "\\hypo{" ++ toLatex s ++ "}"
   toLatex (Application r s ss) = unlines $ (toLatex <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[" ++ toLatex r ++ "]" ++ "{" ++ toLatex s ++ "}"]
+\end{code}
+
+\begin{code}
+data Zipper a = Z [a] [a] deriving (Eq, Show)
+data ZipperSequent f = ZS (Zipper f) (Zipper f) deriving (Eq, Show)
+
+list2zipper :: [f] -> Zipper f
+list2zipper xs = Z xs []
+
+simple2zipper :: SimpleSequent f -> ZipperSequent f
+simple2zipper (S xs ys) = ZS (list2zipper xs) (list2zipper ys)
+
+zipper2list :: Zipper f -> [f]
+zipper2list (Z xs ys) = xs ++ ys
+
+zipper2simple :: ZipperSequent f -> SimpleSequent f
+zipper2simple (ZS zx zy) = S (zipper2list zx) (zipper2list zy)
+
+instance Sequent ZipperSequent where
+  ante :: ZipperSequent f -> [f]
+  ante = ante . zipper2simple
+  cons :: ZipperSequent f -> [f]
+  cons = cons . zipper2simple
+  fromAnte :: [f] -> ZipperSequent f
+  fromAnte = simple2zipper . fromAnte
+  fromCons :: [f] -> ZipperSequent f
+  fromCons = simple2zipper . fromCons
+  prove :: Expandable ZipperSequent f r => ZipperSequent f -> SequentTree ZipperSequent f r
+  prove z@(ZS (Z [] _) (Z [] _)) = Axiom z
+  prove _ = undefined
+
 \end{code}
