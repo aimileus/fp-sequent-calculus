@@ -45,8 +45,17 @@ class Sequent s where
   cons :: s f -> [f]
   fromAnte :: [f] -> s f
   fromCons :: [f] -> s f
-  prove :: (Expandable s f r) => s f -> SequentTree s f r
+  expand :: Expandable s f r => s f -> Maybe (Expanded s f r)
 
+prove :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
+prove zs = tree (expand zs)
+    where
+      tree Nothing = Axiom zs
+      tree (Just (Expd children r)) = Application r zs (prove <$> children)
+
+applyExpansion :: s f -> Expansion s f r -> Maybe (Expanded s f r)
+applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
+applyExpansion _ (Atomic _) = Nothing
 
 data SimpleSequent f = S [f] [f] deriving (Eq, Show)
 
@@ -56,13 +65,8 @@ instance Sequent SimpleSequent where
   fromAnte xs = S xs []
   fromCons = S []
 
-  prove s = tree expanded
+  expand s = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
     where
-      expanded = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
-
-      tree Nothing = Axiom s
-      tree (Just (Expd e r)) = Application r s (prove <$> e)
-
       extractForm :: (Expandable s f r) => SimpleSequent f -> [(SimpleSequent f, Expansion s f r)]
       extractForm (S l r) = lefts ++ rights
         where
@@ -126,10 +130,6 @@ class Verfiable f where
 seqSimple :: (Verfiable f) => SimpleSequent f -> Bool
 seqSimple (S a c) = all formSimple a && all formSimple c
 
-applyExpansion :: SimpleSequent f -> Expansion SimpleSequent f r -> Maybe (Expanded SimpleSequent f r)
-applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
-applyExpansion _ (Atomic _) = Nothing
-
 leafs :: SequentTree s f r -> [s f]
 leafs (Axiom f) = return f
 leafs (Application _ _ y) = y >>= leafs
@@ -175,10 +175,6 @@ zipper2list (Z xs ys) = xs ++ ys
 zipper2simple :: ZipperSequent f -> SimpleSequent f
 zipper2simple (ZS zx zy) = S (zipper2list zx) (zipper2list zy)
 
-applyExpansionZ :: ZipperSequent f -> Expansion ZipperSequent f r -> Maybe (Expanded ZipperSequent f r)
-applyExpansionZ z (Exp m e r)= Just $ Expd (m z <$> e) r
-applyExpansionZ _ (Atomic _) = Nothing
-
 instance Sequent ZipperSequent where
   ante :: ZipperSequent f -> [f]
   ante = ante . zipper2simple
@@ -188,18 +184,11 @@ instance Sequent ZipperSequent where
   fromAnte = simple2zipper . fromAnte
   fromCons :: [f] -> ZipperSequent f
   fromCons = simple2zipper . fromCons
-  prove :: forall f r. Expandable ZipperSequent f r => ZipperSequent f -> SequentTree ZipperSequent f r
-  prove zs = tree (expand zs)
-      where
 
-      tree :: Maybe (Expanded ZipperSequent f r) -> SequentTree ZipperSequent f r
-      tree Nothing = Axiom zs
-      tree (Just (Expd children r)) = Application r zs (prove <$> children)
-
-      -- TODO: extend the Expanded type with a None like type. Then the tree
-      -- function could be generalized between implementations of Sequent
-      expand (ZS (Z [] _) (Z [] _)) = Nothing
-      expand (ZS (Z (x:xs) y) z) = ZS (Z xs y) z `applyExpansionZ` expandLeft x
-      expand (ZS x (Z (y:ys) z)) = ZS x (Z ys z) `applyExpansionZ` expandRight y
+  -- TODO: extend the Expanded type with a None like type. Then the tree
+  -- function could be generalized between implementations of Sequent
+  expand (ZS (Z [] _) (Z [] _)) = Nothing
+  expand (ZS (Z (x:xs) y) z) = ZS (Z xs y) z `applyExpansion` expandLeft x
+  expand (ZS x (Z (y:ys) z)) = ZS x (Z ys z) `applyExpansion` expandRight y
 
 \end{code}
