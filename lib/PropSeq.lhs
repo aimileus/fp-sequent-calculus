@@ -125,18 +125,18 @@ instance Expandable SimpleSequent (PropForm p) PropRule where
   expandLeft (phi `Disj` psi) = (simpleExp . fmap fromAnte) [[phi], [psi]] DisL
   expandLeft (phi `Conj` psi) = simpleExp [fromAnte [phi, psi]] ConL
   expandLeft (Neg phi) = simpleExp [fromCons [phi]] NegL
-  expandLeft phi@(P _) = AtomicL phi
-  expandLeft phi@Top = AtomicL phi
-  expandLeft phi@Bot = AtomicL phi
+  expandLeft phi@(P _) = Atomic phi
+  expandLeft phi@Top = Atomic phi
+  expandLeft phi@Bot = Atomic phi
 
   expandRight :: PropForm p -> Expansion SimpleSequent (PropForm p) PropRule
   expandRight (phi `Impl` psi) = simpleExp [S [phi] [psi]] ImplR
   expandRight (phi `Conj` psi) = simpleExp [fromCons [psi], fromCons [phi]] ConR
   expandRight (phi `Disj` psi) = simpleExp [fromCons [phi, psi]] DisR
   expandRight (Neg phi) = simpleExp [fromAnte [phi]] NegR
-  expandRight phi@(P _) = AtomicR phi
-  expandRight phi@Top = AtomicR phi
-  expandRight phi@Bot = AtomicR phi
+  expandRight phi@(P _) = Atomic phi
+  expandRight phi@Top = Atomic phi
+  expandRight phi@Bot = Atomic phi
 
 instance (Eq p) => Verfiable (PropForm p) where
   verifyAxiom :: SimpleSequent (PropForm p) -> Bool

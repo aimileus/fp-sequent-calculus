@@ -16,8 +16,7 @@ seqPropToModal (S a c) = S (Prop <$> a) (Prop <$> c)
 
 expPropToModal :: Expansion SimpleSequent (PropForm p) PropRule -> Expansion SimpleSequent (ModalForm p) ModalRule
 expPropToModal (Exp m e r) = Exp m (seqPropToModal <$> e) (PropR r)
-expPropToModal (AtomicL f) = AtomicL (Prop f)
-expPropToModal (AtomicR f) = AtomicR (Prop f)
+expPropToModal (Atomic f) = Atomic (Prop f)
 
 instance Expandable SimpleSequent (ModalForm p) ModalRule where
   expandLeft :: ModalForm p -> Expansion SimpleSequent (ModalForm p) ModalRule

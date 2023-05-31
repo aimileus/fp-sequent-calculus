@@ -111,8 +111,7 @@ data Expansion s f r
         exps :: [s f],
         rule :: r
       }
-  | AtomicL f
-  | AtomicR f
+  | Atomic f
 
 data Expanded s f r = Expd [s f] r
 
@@ -129,8 +128,7 @@ seqSimple (S a c) = all formSimple a && all formSimple c
 
 applyExpansion :: SimpleSequent f -> Expansion SimpleSequent f r -> Maybe (Expanded SimpleSequent f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
-applyExpansion _ (AtomicL _) = Nothing
-applyExpansion _ (AtomicR _) = Nothing
+applyExpansion _ (Atomic _) = Nothing
 
 leafs :: SequentTree s f r -> [s f]
 leafs (Axiom f) = return f
@@ -177,6 +175,10 @@ zipper2list (Z xs ys) = xs ++ ys
 zipper2simple :: ZipperSequent f -> SimpleSequent f
 zipper2simple (ZS zx zy) = S (zipper2list zx) (zipper2list zy)
 
+applyExpansionZ :: ZipperSequent f -> Expansion ZipperSequent f r -> Maybe (Expanded ZipperSequent f r)
+applyExpansionZ z (Exp m e r)= Just $ Expd (m z <$> e) r
+applyExpansionZ _ (Atomic _) = Nothing
+
 instance Sequent ZipperSequent where
   ante :: ZipperSequent f -> [f]
   ante = ante . zipper2simple
@@ -186,8 +188,18 @@ instance Sequent ZipperSequent where
   fromAnte = simple2zipper . fromAnte
   fromCons :: [f] -> ZipperSequent f
   fromCons = simple2zipper . fromCons
-  prove :: Expandable ZipperSequent f r => ZipperSequent f -> SequentTree ZipperSequent f r
-  prove z@(ZS (Z [] _) (Z [] _)) = Axiom z
-  prove _ = undefined
+  prove :: forall f r. Expandable ZipperSequent f r => ZipperSequent f -> SequentTree ZipperSequent f r
+  prove zs = tree (expand zs)
+      where
+
+      tree :: Maybe (Expanded ZipperSequent f r) -> SequentTree ZipperSequent f r
+      tree Nothing = Axiom zs
+      tree (Just (Expd children r)) = Application r zs (prove <$> children)
+
+      -- TODO: extend the Expanded type with a None like type. Then the tree
+      -- function could be generalized between implementations of Sequent
+      expand (ZS (Z [] _) (Z [] _)) = Nothing
+      expand (ZS (Z (x:xs) y) z) = ZS (Z xs y) z `applyExpansionZ` expandLeft x
+      expand (ZS x (Z (y:ys) z)) = ZS x (Z ys z) `applyExpansionZ` expandRight y
 
 \end{code}
