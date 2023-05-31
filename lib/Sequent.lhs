@@ -45,13 +45,13 @@ class Sequent s where
   cons :: s f -> [f]
   fromAnte :: [f] -> s f
   fromCons :: [f] -> s f
-  expand :: Expandable s f r => s f -> Maybe (Expanded s f r)
+  expand :: Expandable s f r => s f -> [Expanded s f r]
 
 prove :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
 prove zs = tree (expand zs)
     where
-      tree Nothing = Axiom zs
-      tree (Just (Expd children r)) = Application r zs (prove <$> children)
+      tree [] = Axiom zs
+      tree ((Expd children r):_) = Application r zs (prove <$> children)
 
 applyExpansion :: s f -> Expansion s f r -> Maybe (Expanded s f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
@@ -65,7 +65,7 @@ instance Sequent SimpleSequent where
   fromAnte xs = S xs []
   fromCons = S []
 
-  expand s = listToMaybe $ mapMaybe (uncurry applyExpansion) (extractForm s)
+  expand s = mapMaybe (uncurry applyExpansion) (extractForm s)
     where
       extractForm :: (Expandable s f r) => SimpleSequent f -> [(SimpleSequent f, Expansion s f r)]
       extractForm (S l r) = lefts ++ rights
@@ -187,8 +187,8 @@ instance Sequent ZipperSequent where
 
   -- TODO: extend the Expanded type with a None like type. Then the tree
   -- function could be generalized between implementations of Sequent
-  expand (ZS (Z [] _) (Z [] _)) = Nothing
-  expand (ZS (Z (x:xs) y) z) = ZS (Z xs y) z `applyExpansion` expandLeft x
-  expand (ZS x (Z (y:ys) z)) = ZS x (Z ys z) `applyExpansion` expandRight y
+  expand (ZS (Z [] _) (Z [] _)) = []
+  expand (ZS (Z (x:xs) y) z) = maybeToList $ ZS (Z xs y) z `applyExpansion` expandLeft x
+  expand (ZS x (Z (y:ys) z)) = maybeToList $ ZS x (Z ys z) `applyExpansion` expandRight y
 
 \end{code}
