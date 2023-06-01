@@ -20,6 +20,7 @@ import Sequent
       seqSimple,
       prove,
       leafs,
+      greedyTree,
       verifyTree)
 import PropSeq
 
@@ -76,9 +77,9 @@ main :: IO ()
 main = hspec $ do
   describe "Properties of propositional logic" $ do
     it "valid sequents are valid" $
-      all (verifyTree . prove) validSeqs `shouldBe` True
+      all (verifyTree . greedyTree) validSeqs `shouldBe` True
     it "invalid sequents are invalid" $
-      any (verifyTree . prove) invalidSeqs `shouldBe` False
+      any (verifyTree . greedyTree) invalidSeqs `shouldBe` False
     it "fromAnte: cons should be empty" $
       property (\(fs::[PropForm Int]) -> null $ cons $ fromAnte' fs)
     it "fromAnte: ante is inverse" $

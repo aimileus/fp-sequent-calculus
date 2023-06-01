@@ -27,8 +27,10 @@ module Sequent(
       simpleExp,
       seqSimple,
       leafs,
-      prove,
+      greedyTree,
       verifyTree,
+      allValidTrees,
+      prove,
       Expandable(..),
       Expansion(..),
       SequentTree,
@@ -48,11 +50,11 @@ class Sequent s where
   fromCons :: [f] -> s f
   expand :: Expandable s f r => s f -> [Expanded s f r]
 
-prove :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
-prove zs = tree (expand zs)
+greedyTree :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
+greedyTree zs = tree (expand zs)
     where
       tree [] = Axiom zs
-      tree ((Expd children r):_) = Application r zs (prove <$> children)
+      tree ((Expd children r):_) = Application r zs (greedyTree <$> children)
 
 allValidTrees :: forall s f r. (Sequent s, Verfiable f, Expandable s f r) => s f -> [SequentTree s f r]
 allValidTrees zs =  trees (expand zs)
@@ -63,6 +65,9 @@ allValidTrees zs =  trees (expand zs)
 
     -- expandSingle :: Expanded s f r -> [SequentTree s f r]
     expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
+
+prove :: (Sequent s, Verfiable f, Expandable s f r) => s f -> Maybe (SequentTree s f r)
+prove = listToMaybe . allValidTrees
 
 applyExpansion :: s f -> Expansion s f r -> Maybe (Expanded s f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
@@ -153,7 +158,7 @@ instance (Arbitrary f) => Arbitrary (SimpleSequent f) where
   arbitrary = S <$> arbitrary <*> arbitrary
 
 instance (Arbitrary f, Expandable SimpleSequent f r) => Arbitrary (SequentTree SimpleSequent f r) where
-  arbitrary = prove . fromCons . return <$> arbitrary
+  arbitrary = greedyTree . fromCons . return <$> arbitrary
 
 \end{code}
 
