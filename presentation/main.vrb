@@ -1,0 +1,13 @@
+\frametitle{Generating proofs}
+
+    \begin{lstlisting}[language=Haskell]
+allValidTrees :: forall s f r. (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentTree s f r]
+    allValidTrees zs =  trees (expand zs)
+        where
+            trees [] = [Axiom zs | verifyAxiom zs]
+            trees exps = exps >>= expandSingle
+
+            expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
+
+    \end{lstlisting}
+
