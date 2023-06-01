@@ -56,7 +56,7 @@ greedyTree zs = tree (expand zs)
       tree [] = Axiom zs
       tree ((Expd children r):_) = Application r zs (greedyTree <$> children)
 
-allValidTrees :: forall s f r. (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentTree s f r]
+allValidTrees :: (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentTree s f r]
 allValidTrees zs =  trees (expand zs)
   where
     -- trees :: [Expanded s f r] -> [SequentTree s f r]
@@ -127,7 +127,7 @@ data Expansion s f r
       -- Make the Sequent type use in the merge function independent of f and r.
       -- Now it is slightly more convenient to convert sequents between formula
       -- types.
-      { merge :: forall a. s a -> s a -> s a,
+      { merge :: s f -> s f -> s f,
         exps :: [s f],
         rule :: r
       }
