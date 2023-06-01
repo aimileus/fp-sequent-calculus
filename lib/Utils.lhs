@@ -11,4 +11,14 @@ mapFst f (x, y) = (f x, y)
 mapSnd :: (b -> c) -> (a, b) -> (a, c)
 mapSnd = fmap
 
+firstJust :: [Maybe a] -> Maybe a
+firstJust [] = Nothing
+firstJust (Just x : _) = Just x
+firstJust (Nothing : xs) = firstJust xs
+
+combs :: [[a]] -> [[a]]
+combs = foldr merge [[]]
+    where
+        merge xs1 xs2 = (:) <$> xs1 <*> xs2
+
 \end{code}

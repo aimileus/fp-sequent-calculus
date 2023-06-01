@@ -10,19 +10,24 @@ and test some properties.
 
 module Main where
 
+import Utils
 import Sequent
-    ( SimpleSequent(S, cons, ante),
+    ( Sequent(..),
+      SimpleSequent(..),
       simpleMerge,
       fromAnte,
       fromCons,
       seqSimple,
       prove,
       leafs,
-      verifyTree )
+      verifyTree)
 import PropSeq
+
+import Data.List
 
 import Test.Hspec
 import Test.QuickCheck
+import Data.Maybe (listToMaybe)
 \end{code}
 
 The following uses the HSpec library to define different tests.
@@ -61,6 +66,12 @@ invalidSeqs = [
     S [P 1 `Disj` P 2] [P 1]
   ] ++ map (fromCons . return) invalidForms
 
+fromCons' :: [f] -> SimpleSequent f
+fromCons' = fromCons
+
+fromAnte' :: [f] -> SimpleSequent f
+fromAnte' = fromAnte
+
 main :: IO ()
 main = hspec $ do
   describe "Properties of propositional logic" $ do
@@ -69,19 +80,30 @@ main = hspec $ do
     it "invalid sequents are invalid" $
       any (verifyTree . prove) invalidSeqs `shouldBe` False
     it "fromAnte: cons should be empty" $
-      property (\(fs::[PropForm Int]) -> null $ cons $ fromAnte fs)
+      property (\(fs::[PropForm Int]) -> null $ cons $ fromAnte' fs)
     it "fromAnte: ante is inverse" $
-      property (\(fs::[PropForm Int]) -> ante (fromAnte fs) == fs)
+      property (\(fs::[PropForm Int]) -> ante (fromAnte' fs) == fs)
     it "fromCons: ante should be empty" $
-      property (\(fs::[PropForm Int]) -> null $ ante $ fromCons fs)
+      property (\(fs::[PropForm Int]) -> null $ ante $ fromCons' fs)
     it "fromCons: cons is inverse" $
-      property (\(fs::[PropForm Int]) -> cons (fromCons fs) == fs)
+      property (\(fs::[PropForm Int]) -> cons (fromCons' fs) == fs)
     it "seqTree: leafs cannot be simplified" $
       property (\(st::PSeqTree Int) -> all seqSimple $ leafs st)
     it "simpleMerge: ante is merged" $
       property (\(a::PSequent Int) (b::PSequent Int) -> ante a ++ ante b == ante (a `simpleMerge` b))
     it "simpleMerge: cons is merged" $
       property (\(a::PSequent Int) (b::PSequent Int) -> cons a ++ cons b == cons (a `simpleMerge` b))
+  describe "Utils" $ do
+    it "combs: simple test" $
+      combs [[1::Int, 2], [3, 4]] `shouldBe` [[1,3],[1,4],[2,3],[2,4]]
+    it "combs: slightly advanced test" $
+      combs [[1::Int, 2], [3, 4], [5, 6]] `shouldBe` [[1,3,5],[1,3,6],[1,4,5],[1,4,6],[2,3,5],[2,3,6],[2,4,5],[2,4,6]]
+    it "combs: length" $
+      property (\(xs::[[Int]]) -> not (any null xs) ==> (length . head . combs) xs == length xs)
+    it "combs: lazy" $
+      (head . combs) [[(1::Int)..], [3..]] `shouldBe` [1,3]
+    it "combs: empty combination" $
+      combs ([]:map singleton [1..]) `shouldBe` []
 
 
 \end{code}

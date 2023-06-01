@@ -25,6 +25,7 @@ import Sequent
       simpleExp,
       Expandable(..),
       Expansion(..),
+      Sequent(..),
       SimpleSequent(S),
       SequentTree,
       Verfiable(..) )
@@ -139,8 +140,11 @@ instance Expandable SimpleSequent (PropForm p) PropRule where
   expandRight phi@Bot = Atomic phi
 
 instance (Eq p) => Verfiable (PropForm p) where
-  verifyAxiom :: SimpleSequent (PropForm p) -> Bool
-  verifyAxiom (S a c) = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
+  verifyAxiom :: Sequent s => s (PropForm p) -> Bool
+  verifyAxiom s = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
+    where
+      a = ante s
+      c = cons s
 
   formSimple :: PropForm p -> Bool
   formSimple (P _) = True

@@ -27,6 +27,7 @@ module Sequent(
       simpleExp,
       seqSimple,
       leafs,
+      prove,
       verifyTree,
       Expandable(..),
       Expansion(..),
@@ -52,6 +53,16 @@ prove zs = tree (expand zs)
     where
       tree [] = Axiom zs
       tree ((Expd children r):_) = Application r zs (prove <$> children)
+
+allValidTrees :: forall s f r. (Sequent s, Verfiable f, Expandable s f r) => s f -> [SequentTree s f r]
+allValidTrees zs =  trees (expand zs)
+  where
+    -- trees :: [Expanded s f r] -> [SequentTree s f r]
+    trees [] = [Axiom zs | verifyAxiom zs]
+    trees exps = exps >>= expandSingle
+
+    -- expandSingle :: Expanded s f r -> [SequentTree s f r]
+    expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
 
 applyExpansion :: s f -> Expansion s f r -> Maybe (Expanded s f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
@@ -124,7 +135,7 @@ class Expandable s f r | f -> r where
   expandRight :: f -> Expansion s f r
 
 class Verfiable f where
-  verifyAxiom :: SimpleSequent f -> Bool
+  verifyAxiom :: Sequent s => s f -> Bool
   formSimple :: f -> Bool
 
 seqSimple :: (Verfiable f) => SimpleSequent f -> Bool
