@@ -1,0 +1,172 @@
+% !TeX TS-program = xelatex
+\documentclass{beamer}
+
+\usepackage{mathtools}
+
+\input{preamble.tex}
+
+\usetheme{focus}
+
+\title{Sequent Calculus Proof Generation}
+\author{Emiel Wiedijk \and Jonas van der Schaaf}
+\date{\today}
+
+\setmathfont{Latin Modern Math}[range=\bigwedge]
+\setmathfont{Latin Modern Math}[range=\bigvee]
+\setmathfont{Latin Modern Math}[range=\bot]
+\setmathfont{Latin Modern Math}[range=\top]
+
+
+\begin{document}
+\maketitle
+
+\section{Sequent Calculus}
+
+\begin{frame}
+    \frametitle{What is a sequent?}
+
+    \begin{itemize}
+        \item Multiset sequents
+        \item Two multisets of formulas \(\Gamma,\Delta\)
+        \item Sequent \(\sequent{\Gamma}{\Delta}\)
+        \item \(\bigwedge\Gamma\to\bigvee\Delta\)
+        \item Propositional logic
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Structure of proofs}
+
+    \begin{itemize}
+        \item Proof of \(S=\sequent{\Gamma}{\Delta}\)
+        \item Finite tree with root \(S\)
+        \item Rule application to get nodes
+        \item Leaves must be axioms
+    \end{itemize}
+
+    \[
+        \sequent{\bot,\Gamma}{\Delta}\qquad\sequent{\Gamma}{\Delta,\top}\qquad\sequent{\Gamma,\varphi}{\varphi,\Delta}
+    \]
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Proof system for sequent calculus}
+
+    \begin{figure}[H]
+        \begin{mathpar}
+            \inferrule{\sequent{\Gamma,\varphi,\psi}{\Delta}}{\sequent{\Gamma,\varphi\wedge\psi}{\Delta}}\wedge L
+            \and \inferrule{\sequent{\Gamma}{\Delta,\varphi}\\\sequent{\Gamma}{\Delta,\psi}}{\sequent{\Gamma}{\Delta,\varphi\wedge\psi}}\wedge R\\
+
+            \inferrule{\sequent{\Gamma,\varphi}{\Delta}\\\sequent{\Gamma,\psi}{\Delta}}{\sequent{\Gamma,\varphi\vee\psi}{\Delta}}\vee L
+            \and\inferrule{\sequent{\Gamma}{\Delta,\varphi,\psi}}{\sequent{\Gamma}{\Delta,\varphi\vee\psi}}\vee R \\
+
+            \inferrule{\sequent{\Gamma}{\Delta,\varphi}}{\sequent{\Gamma,\neg\varphi}{\Delta}}\neg L
+            \and\inferrule{\sequent{\Gamma,\varphi}{\Delta}}{\sequent{\Gamma}{\Delta,\neg\varphi}}\neg R \\
+
+            \inferrule{\sequent{\Gamma,\varphi}{\Delta}\\\sequent{\Gamma}{\Delta,\varphi}}{\sequent{\Gamma,\varphi\to\psi}{\Delta}}\to L
+            \and\inferrule{\sequent{\Gamma,\varphi}{\Delta,\psi}}{\sequent{\Gamma}{\Delta,\varphi\to\psi}}\to R
+        \end{mathpar}
+
+        \caption{The rules for sequent calculus.}
+        \label{fig:seq-rules}
+    \end{figure}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Examples}
+
+    \begin{figure}[ht]
+        \centering
+        \begin{prooftree}
+            \hypo{\sequent{q}{p,q}}
+
+            \hypo{\sequent{p}{p,q}}
+            \infer1[\(\neg L\)]{\sequent{}{\neg p,p,q}}
+            \infer2[\(\to L\)]{\sequent{\neg p\to q}{p,q}}
+
+            \hypo{\sequent{q,\neg p\to q}{q}}
+
+            \infer2[\(\to L\)]{\sequent{p\to q,\neg p\to q}{q}}
+            \infer1[\(\to R\)]{\sequent{p\to q}{(\neg p\to q)\to q}}
+            \infer1[\(\to R\)]{\sequent{}{(p\to q)\to((\neg p\to q)\to q)}}
+        \end{prooftree}
+
+        \caption{A proof of the tautology \((p\to q)\to((\neg p\to q)\to q)\)}
+    \end{figure}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Our approach to proofs}
+
+    \begin{itemize}
+        \item Rules increase complexity of sequent
+        \item Sequent has finite complexity
+        \item Backward search must terminate
+        \item Generate proofs and see if they are correct
+        \item This is fine because \(P\neq NP\)
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Sequents and rules}
+
+    \begin{lstlisting}[language=Haskell]
+class Sequent s where
+  ante :: s f -> [f]
+  cons :: s f -> [f]
+  fromAnte :: [f] -> s f
+  fromCons :: [f] -> s f
+  expand :: Expandable s f r => s f -> [Expanded s f r]
+    \end{lstlisting}
+
+    \begin{lstlisting}[language=Haskell]
+class Expandable s f r | f -> r where
+  expandLeft :: f -> Expansion s f r
+  expandRight :: f -> Expansion s f r
+    \end{lstlisting}
+\end{frame}
+
+\section{Our code in practice}
+
+\begin{frame}{High level approach}
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Greedy proof generation}
+
+    \begin{lstlisting}[language=Haskell]
+greedyTree :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
+greedyTree zs = tree (expand zs)
+    where
+        tree [] = Axiom zs
+        tree ((Expd children r):_) = Application r zs (greedyTree <$> children)
+    \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Generating proofs}
+
+    \begin{lstlisting}[language=Haskell]
+allValidTrees :: forall s f r. (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentTree s f r]
+    allValidTrees zs =  trees (expand zs)
+        where
+            trees [] = [Axiom zs | verifyAxiom zs]
+            trees exps = exps >>= expandSingle
+
+            expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
+
+    \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[focus]
+    And now: a demo
+\end{frame}
+\end{document}
