@@ -16,6 +16,7 @@ firstJust [] = Nothing
 firstJust (Just x : _) = Just x
 firstJust (Nothing : xs) = firstJust xs
 
+-- alternatively: combs = foldr ((<*>) . ((:) <$>)) [[]]
 combs :: [[a]] -> [[a]]
 combs = foldr merge [[]]
     where
