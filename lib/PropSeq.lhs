@@ -28,7 +28,7 @@ import Sequent
       Sequent(..),
       SimpleSequent(S),
       SequentTree,
-      Verfiable(..) )
+      Verifiable(..) )
 import Test.QuickCheck (Arbitrary (arbitrary), oneof, sized)
 import Latex
 
@@ -139,7 +139,7 @@ instance Expandable SimpleSequent (PropForm p) PropRule where
   expandRight phi@Top = Atomic phi
   expandRight phi@Bot = Atomic phi
 
-instance (Eq p) => Verfiable (PropForm p) where
+instance (Eq p) => Verifiable (PropForm p) where
   verifyAxiom :: Sequent s => s (PropForm p) -> Bool
   verifyAxiom s = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
     where

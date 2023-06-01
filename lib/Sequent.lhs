@@ -34,7 +34,7 @@ module Sequent(
       Expandable(..),
       Expansion(..),
       SequentTree,
-      Verfiable(..) )
+      Verifiable(..) )
    where
 
 import Data.Maybe
@@ -56,7 +56,7 @@ greedyTree zs = tree (expand zs)
       tree [] = Axiom zs
       tree ((Expd children r):_) = Application r zs (greedyTree <$> children)
 
-allValidTrees :: forall s f r. (Sequent s, Verfiable f, Expandable s f r) => s f -> [SequentTree s f r]
+allValidTrees :: forall s f r. (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentTree s f r]
 allValidTrees zs =  trees (expand zs)
   where
     -- trees :: [Expanded s f r] -> [SequentTree s f r]
@@ -66,7 +66,7 @@ allValidTrees zs =  trees (expand zs)
     -- expandSingle :: Expanded s f r -> [SequentTree s f r]
     expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
 
-prove :: (Sequent s, Verfiable f, Expandable s f r) => s f -> Maybe (SequentTree s f r)
+prove :: (Sequent s, Verifiable f, Expandable s f r) => s f -> Maybe (SequentTree s f r)
 prove = listToMaybe . allValidTrees
 
 applyExpansion :: s f -> Expansion s f r -> Maybe (Expanded s f r)
@@ -139,18 +139,18 @@ class Expandable s f r | f -> r where
   expandLeft :: f -> Expansion s f r
   expandRight :: f -> Expansion s f r
 
-class Verfiable f where
+class Verifiable f where
   verifyAxiom :: Sequent s => s f -> Bool
   formSimple :: f -> Bool
 
-seqSimple :: (Verfiable f) => SimpleSequent f -> Bool
+seqSimple :: (Verifiable f) => SimpleSequent f -> Bool
 seqSimple (S a c) = all formSimple a && all formSimple c
 
 leafs :: SequentTree s f r -> [s f]
 leafs (Axiom f) = return f
 leafs (Application _ _ y) = y >>= leafs
 
-verifyTree :: (Verfiable f) => SequentTree SimpleSequent f r -> Bool
+verifyTree :: (Verifiable f) => SequentTree SimpleSequent f r -> Bool
 verifyTree (Axiom f) = verifyAxiom f
 verifyTree (Application _ _ ys) = all verifyTree ys
 
