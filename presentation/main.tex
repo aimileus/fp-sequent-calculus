@@ -5,16 +5,16 @@
 
 \input{preamble.tex}
 
-%\usetheme{focus}
+\usetheme{focus}
 
 \title{Sequent Calculus Proof Generation}
 \author{Emiel Wiedijk \and Jonas van der Schaaf}
 \date{\today}
 
-%\setmathfont{Latin Modern Math}[range=\bigwedge]
-%\setmathfont{Latin Modern Math}[range=\bigvee]
-%\setmathfont{Latin Modern Math}[range=\bot]
-%\setmathfont{Latin Modern Math}[range=\top]
+\setmathfont{Latin Modern Math}[range=\bigwedge]
+\setmathfont{Latin Modern Math}[range=\bigvee]
+\setmathfont{Latin Modern Math}[range=\bot]
+\setmathfont{Latin Modern Math}[range=\top]
 
 
 \begin{document}
@@ -134,11 +134,7 @@ class Expandable s f r | f -> r where
 \section{Our code in practice}
 
 \begin{frame}[fragile]{Sequent data strcture}
-
-
     \begin{itemize}
-    	\item Code as general as possible: independent of specific logic, derivation rules, and sequent data strucutre.
-    	\item Now focus on \texttt{SimpleSequent}.
         \item Represent $\sequent{f_1, \ldots, f_n}{g_1 \ldots, g_n}$ as
         \vspace{1em}
    	\begin{lstlisting}[language=
@@ -153,11 +149,19 @@ S [f1, ..., fn] [g1, .., gn] :: SimpleSequent f
 	\item "Proof tree": atomic formulas at leafs, target formula at root.
 	\item How to represent this tree?
 \end{itemize}
+\pause
 
 	\vspace{1em}
 	\begin{lstlisting}[language=haskell]
-SeqTree f = Axiom (SimpleSequent f) |
-            Application (SimpleSequent f) [SeqTree f]
+SeqTree' f = Axiom (SimpleSequent f) |
+            Application (SimpleSequent f) [SeqTree' f]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Generate proof tree}
+		\begin{lstlisting}[language=haskell]
+findTree :: SimpleSequent f -> SeqTree' f
+findTree = ...
 \end{lstlisting}
 \end{frame}
 
@@ -182,6 +186,7 @@ SeqTree f = Axiom (SimpleSequent f) |
 		\begin{itemize}
 			\item For example: simplify sequent $\sequent{\psi_1 \lor \psi_2}{}$ \\  into two sequents $\sequent{\psi_1}{}$ and $\sequent{\psi_2}{}$.
 		\end{itemize}
+		\pause
 		\item \textbf{Merge} back with original sequent: immediate children in tree
 		\begin{itemize}
 			\item Children in example: $\sequent{\psi_1, \Gamma'}{\Delta}$ and $\sequent{\psi_2, \Gamma'}{\Delta}$
@@ -193,12 +198,12 @@ SeqTree f = Axiom (SimpleSequent f) |
 	Represent merged sequents as
 
 	\begin{lstlisting}[language=haskell]
-Expanded f = [SimpleSequent f]
+Expanded' f = Expd' Rule [SimpleSequent f]
 \end{lstlisting}
 
 Find all possible expansions
 \begin{lstlisting}[language=haskell]
-expand :: SimpleSequent f -> [Expanded f]
+expand' :: SimpleSequent f -> [Expanded' f]
 \end{lstlisting}
 \pause
 Possibly many, luckily Haskell is lazy!
@@ -223,18 +228,17 @@ class Sequent s where
     \frametitle{Greedy proof generation}
 
     \begin{itemize}
-    	\item To find the tree, recursively pick an expansion \\
-      		until there are None left
-		\item Classical propositional logic, choice of \texttt{Expanded} irrelevant.
-		\item For the tree: recursively repeat function until all formula are atomic.
-		\pause
+    	\item To find the tree, recursively pick an expansion. \\
+      	\pause
+		\item Classical propositional logic: choice of \texttt{Expanded} irrelevant.
 		\item If any tree is valid: greedy approach yields valid tree.
     \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{Greedy proof generation: Haskell}
     \begin{lstlisting}[language=Haskell]
-greedyTree :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
+greedyTree :: (Sequent s, Expandable s f r)
+   => s f -> SequentTree s f r
 greedyTree zs = tree (expand zs)
     where
         tree [] = Axiom zs
@@ -243,7 +247,7 @@ greedyTree zs = tree (expand zs)
 
 \end{frame}
 
-\begin{frame}%[focus]
+\begin{frame}[focus]
     And now: a demo
 \end{frame}
 
@@ -302,7 +306,7 @@ allValidTrees :: (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentT
 
 \end{frame}
 
-\begin{frame}%[focus]
+\begin{frame}[focus]
 	Thank you for your attention!
 \end{frame}
 
