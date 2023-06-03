@@ -109,6 +109,7 @@ We give a couple of examples of proofs of sequents:
     \end{prooftree}
 
     \caption{A proof of the tautology \((p\to q)\to((\neg p\to q)\to q)\)}
+    \label{fig:tauto2}
 \end{figure}
 
 We implement the types from the sequent module in order to use its functions to
@@ -242,5 +243,32 @@ will yield a piece of code that renders the following proof tree:
 \infer1[\(\neg R\)]{\Rightarrow p_{0},\neg p_{0}}
 
 \infer1[\(\neg L\)]{\neg\neg p_{0}\Rightarrow p_{0}}
+\end{prooftree}
+\]
+
+Trying something more complicated, for example the sequent from
+\Cref{fig:tauto2} we get:
+\[
+\begin{prooftree}
+\hypo{p_{1},p_{1}\Rightarrow p_{1}}
+\hypo{p_{1},p_{0}\Rightarrow p_{1}}
+\infer1[\(\neg R\)]{p_{1}\Rightarrow p_{1},\neg p_{0}}
+
+\infer2[\(\to L\)]{p_{1},\neg p_{0}\to p_{1}\Rightarrow p_{1}}
+
+\infer1[\(\to R\)]{p_{1}\Rightarrow (\neg p_{0}\to p_{1})\to p_{1}}
+
+\hypo{p_{1}\Rightarrow p_{0},p_{1}}
+\hypo{p_{0}\Rightarrow p_{0},p_{1}}
+\infer1[\(\neg R\)]{\Rightarrow p_{0},p_{1},\neg p_{0}}
+
+\infer2[\(\to L\)]{\neg p_{0}\to p_{1}\Rightarrow p_{0},p_{1}}
+
+\infer1[\(\to R\)]{\Rightarrow (\neg p_{0}\to p_{1})\to p_{1},p_{0}}
+
+\infer2[\(\to L\)]{p_{0}\to p_{1}\Rightarrow (\neg p_{0}\to p_{1})\to p_{1}}
+
+\infer1[\(\to R\)]{\Rightarrow (p_{0}\to p_{1})\to ((\neg p_{0}\to p_{1})\to p_{1})}
+
 \end{prooftree}
 \]
