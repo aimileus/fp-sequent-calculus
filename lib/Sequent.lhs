@@ -231,8 +231,10 @@ instance (ToLatex f) => ToLatex (SimpleSequent f) where
       toCommaSeparated = intercalate ","
 
 instance (ToLatex f, ToLatex r, ToLatex (s f)) => ToLatex (SequentTree s f r) where
-  toLatex (Axiom s) = "\\hypo{" ++ toLatex s ++ "}"
-  toLatex (Application r s ss) = unlines $ (toLatex <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[" ++ toLatex r ++ "]" ++ "{" ++ toLatex s ++ "}"]
+  toLatex tree = "\\begin{prooftree}\n" ++ helper tree ++ "\n\\end{prooftree}"
+    where
+      helper (Axiom s) = "\\hypo{" ++ toLatex s ++ "}"
+      helper (Application r s ss) = unlines $ (helper <$> ss) ++ ["\\infer" ++ show (length ss) ++ "[\\(" ++ toLatex r ++ "\\)]" ++ "{" ++ toLatex s ++ "}"]
 \end{code}
 
 \begin{code}

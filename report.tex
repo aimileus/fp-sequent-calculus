@@ -12,10 +12,12 @@
 
 \begin{abstract}
     Sequent calculus is a way to formalize natural deduction proofs. We give a
-    Haskell library for the generation of Sequent Calculus proofs. The proof checker
-    has an implementation for the generation of proofs for (classical) propositional
-    logic. Most of the functions are generic so they should be (relatively) easily
-    extendable to other logics.
+    Haskell library for the generation of Sequent Calculus proofs. Our code can
+    generate proofs for both classical and intuitionistic sequent calculus. We
+    believe that the extensive use of typeclasses allows our code to be used to
+    generate proofs for many other sequent calculi as well. We also support
+    exporting of a sequent calculus proof to \LaTeX{} code using the package
+    ebproof.
 \end{abstract}
 
 \newpage
@@ -30,10 +32,8 @@
 
 \input{lib/PropSeq.lhs}
 
-\cite{Knuth11CombAlg}
+\input{lib/InSeq.lhs}
 
-\addcontentsline{toc}{section}{Bibliography}
-\bibliographystyle{alpha}
-\bibliography{references.bib}
+\input{lib/Latex.lhs}
 
 \end{document}
