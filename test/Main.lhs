@@ -117,9 +117,8 @@ validMSequents =  [
   ] ++ (modSeq <$> validSequents)
 
 invalidMSequents :: [MSequent Int]
-invalidMSequents = [
-    S [(Dia . Box) (Prop p), (Dia . Box) (Prop q)] [Prop (p `Conj` q)]
-  ] ++ (modSeq <$> invalidSequents)
+invalidMSequents = S [(Dia . Box) (Prop p), (Dia . Box) (Prop q)] [Prop (p `Conj` q)]
+  : (modSeq <$> invalidSequents)
 \end{code}
 
 To test the \LaTeX{} generation code, we have written what the corresponding
@@ -156,7 +155,7 @@ proofTree = Application PropSeq.ImplR (S [P 1] [Impl (P (0 :: Int)) (Impl (Conj 
 proofTreeTex :: String
 proofTreeTex = "\\begin{prooftree}\n\\hypo{p_{1},p_{0},p_{1}\\Rightarrow p_{1},p_{0}}\n\\infer1[\\(\\neg L\\)]{p_{1},p_{0},p_{1},\\neg p_{0}\\Rightarrow p_{1}}\n\n\\infer1[\\(\\wedge L\\)]{p_{1},p_{0},p_{1}\\wedge \\neg p_{0}\\Rightarrow p_{1}}\n\n\\infer1[\\(\\to R\\)]{p_{1},p_{0}\\Rightarrow p_{1}\\wedge \\neg p_{0}\\to p_{1}}\n\n\\infer1[\\(\\to R\\)]{p_{1}\\Rightarrow p_{0}\\to (p_{1}\\wedge \\neg p_{0}\\to p_{1})}\n\n\\end{prooftree}"
 \end{code}
-
+Here we add some aliases with stricter typing used as type hints in the tests.
 \begin{code}
 fromCons' :: [f] -> SimpleSequent f
 fromCons' = fromCons
@@ -164,6 +163,7 @@ fromCons' = fromCons
 fromAnte' :: [f] -> SimpleSequent f
 fromAnte' = fromAnte
 \end{code}
+Then finally, here we have our test specification.
 \begin{code}
 main :: IO ()
 main = hspec $ do

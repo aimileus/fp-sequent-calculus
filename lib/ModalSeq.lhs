@@ -10,7 +10,7 @@ import Sequent
 import Data.List
 import Latex
 \end{code}}
-\section{Modal Logic}
+\subsection{Modal Logic}
 We can also use our Sequent Calculus prover for modal logic formula. Modal logic
 extends propositional logic with two modal operators \(\Box\), and \(\Diamond\).
 A modal formula \(\phi\) is of the form
@@ -27,7 +27,7 @@ type MSequent p = SimpleSequent (ModalForm p)
 We restrict ourselfs to S4 models of modal logic, which mean that world relation
 is reflexive and transitive. The inference rules of modal logic are based on the
 propositional inference rules. Here we use classical propositional logic.
-The extended inference rules are as follows
+The extended inference rules are as follows \cite{seqCal}
 
 \begin{mathpar}
   \inferrule{\sequent{\Gamma, \varphi}{\Delta}}{\sequent{\Gamma, \Box \varphi}{\Delta}}\Box L
