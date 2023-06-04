@@ -1,3 +1,7 @@
+\appendix
+\section{Utilities}
+In this section we define some helper functions that are general outside sequent
+calculus.
 \begin{code}
 module Utils where
 

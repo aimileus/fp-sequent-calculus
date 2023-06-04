@@ -20,9 +20,12 @@ import Sequent
       leafs,
       greedyTree,
       verifyTree,
-      simple2zipper,
-      zipper2simple,
+      verifyAxiom,
       prove,
+      )
+import ZipperSequent
+    ( simple2zipper,
+      zipper2simple,
       )
 import PropSeq
 import InSeq
@@ -40,19 +43,25 @@ Note that the first test is a specific test with fixed inputs.
 The second and third test use QuickCheck.
 
 \begin{code}
+p, q, r :: PropForm Int
+(p, q, r) = (P 1, P 2, P 3)
+
+
 validForms :: [PropForm Int]
 validForms =
   [
-    P 1 `Disj` Neg (P 1),
-    Neg (P 1 `Conj` Neg (P 1)),
+    p `Disj` Neg (p),
+    Neg (Neg p) --> p,
+    Neg (p & Neg (p)),
     Top,
-    ((P 1 `Impl` P 2) `Conj` (P 2 `Impl` P 3)) `Impl` (P 1 `Impl` P 3)
+    ((p --> q) & (q --> r)) --> (p --> r)
   ]
 
 validFormsTex :: [String]
 validFormsTex =
   [
     "p_{1}\\vee \\neg p_{1}",
+    "\\neg \\neg p_{1}\\to p_{1}",
     "\\neg (p_{1}\\wedge \\neg p_{1})",
     "\\top ",
     "(p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})"
@@ -60,10 +69,10 @@ validFormsTex =
 
 validSeqs :: [PSequent Int]
 validSeqs = [
-    S [Neg $ Neg $ P 1] [P 1],
-    S [P 1 `Disj` P 2] [P 1, P 2],
-    S [P 1, P 2] [P 1 `Conj` P 2],
-    S [P 1, P 2] [P 1, P 2]
+    S [Neg (Neg p)] [p],
+    S [p `Disj` q] [p, q],
+    S [p, q] [p & q],
+    S [p, q] [p, q]
   ] ++ map (fromCons . return) validForms
 
 validSeqsTex :: [String]
@@ -73,6 +82,7 @@ validSeqsTex =
     "p_{1},p_{2}\\Rightarrow p_{1}\\wedge p_{2}",
     "p_{1},p_{2}\\Rightarrow p_{1},p_{2}",
     "\\Rightarrow p_{1}\\vee \\neg p_{1}",
+    "\\Rightarrow \\neg \\neg p_{1}\\to p_{1}",
     "\\Rightarrow \\neg (p_{1}\\wedge \\neg p_{1})",
     "\\Rightarrow \\top ",
     "\\Rightarrow (p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})"
@@ -80,17 +90,29 @@ validSeqsTex =
 
 invalidForms :: [PropForm Int]
 invalidForms = [
-    P 1,
-    P 1 `Conj` P 2,
-    P 1 `Impl` Neg (P 1),
+    p,
+    p & q,
+    p --> Neg (p),
     Bot
   ]
 
 invalidSeqs :: [PSequent Int]
 invalidSeqs = [
-    S [] [P 1, P 2],
-    S [P 1 `Disj` P 2] [P 1]
+    S [] [p, q],
+    S [p `Disj` q] [p]
   ] ++ map (fromCons . return) invalidForms
+
+
+validIForms :: [InForm Int]
+validIForms = In <$> [
+
+  ]
+
+invalidIForms :: [InForm Int]
+invalidIForms = In <$> [
+    p `Disj` Neg p,
+    p --> Neg (Neg p)
+  ]
 
 fromCons' :: [f] -> SimpleSequent f
 fromCons' = fromCons
@@ -115,7 +137,7 @@ main = hspec $ do
     it "invalid sequents are invalid" $
       any (verifyTree . greedyTree) invalidSeqs `shouldBe` False
     it "seqTree: leafs cannot be simplified" $
-      property (\(st::PSeqTree Int) -> all (null . expand) $ leafs st)
+      property (\(st::PSeqTree Int) -> all (\x -> null (expand x) || verifyAxiom x) $ leafs st)
     it "simpleMerge: ante is merged" $
       property (\(a::PSequent Int) (b::PSequent Int) -> ante a ++ ante b == ante (a `simpleMerge` b))
     it "simpleMerge: cons is merged" $
@@ -127,7 +149,7 @@ main = hspec $ do
       property (\(s::PSequent Int) -> (zipper2simple . simple2zipper) s == s)
   describe "Intuisionistic logic" $ do
     it "Intuisionistic truth implies classical truth" $
-      property (\(s::SimpleSequent (InForm Int)) -> isJust (prove s) <= isJust (prove $ inseq2clas s))
+      property (\(s::SimpleSequent (InForm Int)) -> isJust (prove s) <= isJust (prove $ clasSeq s))
   describe "Utils" $ do
     it "combs: simple test" $
       combs [[1::Int, 2], [3, 4]] `shouldBe` [[1,3],[1,4],[2,3],[2,4]]
@@ -161,8 +183,3 @@ main = hspec $ do
 \end{code}
 
 To run the tests, use \verb|stack test|.
-
-To also find out which part of your program is actually used for these tests,
-run \verb|stack clean && stack test --coverage|. Then look for ``The coverage
-report for ... is available at ... .html'' and open this file in your browser.
-See also: \url{https://wiki.haskell.org/Haskell_program_coverage}.

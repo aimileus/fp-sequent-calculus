@@ -9,8 +9,7 @@ where \(P\) is any set of propositional letters. In Haskell we implement it as a
 data type generic over a type \(p\) which is the type of the propositional
 letters.
 
-We also have a simple function to determine if a formula is a propositional
-letter.
+% TODO: cite inversion lemma to argue that greedy search works.
 
 \begin{code}
 {-# LANGUAGE InstanceSigs #-}
@@ -165,7 +164,7 @@ instance (Arbitrary p) => Arbitrary (PropForm p) where
           ]
 \end{code}
 
-We also implement printing a formula as latex expression in order to export
+We also implement printing a formula as LaTeX expression in order to export
 our generated proofs.
 
 \begin{code}
@@ -191,9 +190,11 @@ isNeg :: PropForm p -> Bool
 isNeg (Neg _) = True
 isNeg _ = False
 
-isProp :: PropForm p -> Bool
-isProp (P _) = True
-isProp _ = False
+isAtom :: PropForm p -> Bool
+isAtom (P _) = True
+isAtom Bot = True
+isAtom Top = True
+isAtom _ = False
 
 instance ToLatex p => ToLatex (PropForm p) where
   toLatex (P p) = "p_{" ++ toLatex p ++ "}"
@@ -201,20 +202,20 @@ instance ToLatex p => ToLatex (PropForm p) where
   toLatex Bot = "\\bot "
   toLatex (Conj phi psi) = leftForm ++ "\\wedge " ++ rightForm
     where
-      leftForm = if any ($ phi) [isCon, isNeg, isProp] then toLatex phi else "(" ++ toLatex phi ++ ")"
-      rightForm = if any ($ psi) [isCon, isNeg, isProp] then toLatex psi else "(" ++ toLatex psi ++ ")"
+      leftForm = if any ($ phi) [isCon, isNeg, isAtom] then toLatex phi else "(" ++ toLatex phi ++ ")"
+      rightForm = if any ($ psi) [isCon, isNeg, isAtom] then toLatex psi else "(" ++ toLatex psi ++ ")"
 
 
   toLatex (Disj phi psi) = leftForm ++ "\\vee " ++ rightForm
     where
-      leftForm = if any ($ phi) [isDis, isNeg, isProp] then toLatex phi else "(" ++ toLatex phi ++ ")"
-      rightForm = if any ($ psi) [isDis, isNeg, isProp] then toLatex psi else "(" ++ toLatex psi ++ ")"
+      leftForm = if any ($ phi) [isDis, isNeg, isAtom] then toLatex phi else "(" ++ toLatex phi ++ ")"
+      rightForm = if any ($ psi) [isDis, isNeg, isAtom] then toLatex psi else "(" ++ toLatex psi ++ ")"
 
 
   toLatex (Impl phi psi) = leftForm ++ "\\to " ++ rightForm
     where
-      leftForm = if any ($ phi) [isDis, isCon, isNeg, isProp] then toLatex phi else "(" ++ toLatex phi ++ ")"
-      rightForm = if any ($ psi) [isDis, isCon, isNeg, isProp] then toLatex psi else "(" ++ toLatex psi ++ ")"
+      leftForm = if any ($ phi) [isDis, isCon, isNeg, isAtom] then toLatex phi else "(" ++ toLatex phi ++ ")"
+      rightForm = if any ($ psi) [isDis, isCon, isNeg, isAtom] then toLatex psi else "(" ++ toLatex psi ++ ")"
 
   toLatex (Neg phi@(Neg _)) = "\\neg " ++ toLatex phi
   toLatex (Neg phi@(P _)) = "\\neg " ++ toLatex phi

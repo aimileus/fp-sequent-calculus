@@ -6,7 +6,7 @@
 module InSeq where
 
 import Latex (ToLatex (..))
-import PropSeq (PropForm (..))
+import PropSeq (PropForm (..), PropRule)
 import Sequent
 import Data.List
 import Test.QuickCheck (Arbitrary, arbitrary)
@@ -27,6 +27,28 @@ where \(\Delta\) is any arbitrary multiset. We implement expansion of
 \(\neg\varphi\) using the rules for implication as well by simply handling
 \(\neg\varphi\) as if it were the formula \(\varphi\to\bot\).
 
+The new inference rule does have a significant difference from the classical
+inference rules, namely the Expansion using this rule might be ``destructive''.
+By applying the wrong inference rule, it can be possible to go from a provable
+sequent to an unprovable sequent. Take for this invalid proof
+\[
+\begin{prooftree}
+\hypo{p_{1}\Rightarrow \bot }
+\infer1[\(\to R\)]{p_{1}\Rightarrow p_{1}\to (\bot ),p_{1}\to (\top )}
+\end{prooftree}
+\]
+where the correct proof would be
+\[
+\begin{prooftree}
+\hypo{p_{1}\Rightarrow \top }
+\infer1[\(\to R\)]{p_{1}\Rightarrow p_{1}\to \bot ,p_{1}\to \top }
+\end{prooftree}
+\]
+We define an intuisionistic formula as a newtype over the classical propositional formula.
+Therefore, the compiler knows whether a formula is classical or intuisionistic,
+and can call the appropriate functions to generate the proof. On the other hand
+there is no runtime overhead, and the in-memory representation of intuisionistic
+formula is the same as for classical formula.
 \begin{code}
 newtype InForm p = In (PropForm p)
   deriving (Eq, Show)
@@ -34,54 +56,72 @@ newtype InForm p = In (PropForm p)
 data InRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
-instance Eq p => Expandable SimpleSequent (InForm p) InRule where
-  expandLeft :: Eq p => InForm p -> Expansion SimpleSequent (InForm p) InRule
-  expandLeft (In (phi `Impl` psi)) = simpleExp [fromAnte [In psi], fromCons [In phi]] ImplL
-  expandLeft (In (phi `Disj` psi)) = (simpleExp . fmap fromAnte) [[In phi], [In psi]] DisL
-  expandLeft (In (phi `Conj` psi)) = simpleExp [fromAnte [In phi, In psi]] ConL
-  expandLeft (In (Neg phi)) = simpleExp [fromAnte [In (phi `Impl` Bot)]] NegL
-  expandLeft phi@(In (P _)) = Atomic phi
-  expandLeft phi@(In Top) = Atomic phi
-  expandLeft phi@(In Bot) = Atomic phi
+type ISequent p = SimpleSequent (InForm p)
+\end{code}
+First we introduce some functions to easily convert between classical and
+intuisionistic formula/sequents/expansions
+\begin{code}
+clas :: InForm f -> PropForm f
+clas (In f) = f
 
-  expandRight :: Eq p => InForm p -> Expansion SimpleSequent (InForm p) InRule
-  expandRight (In (phi `Impl` psi)) = Exp mergeRightImpl [S [In phi] [In psi]] ImplR
-  expandRight (In (phi `Conj` psi)) = simpleExp [fromCons [In psi], fromCons [In phi]] ConR
-  expandRight (In (phi `Disj` psi)) = simpleExp [fromCons [In phi, In psi]] DisR
-  expandRight (In (Neg phi)) = simpleExp [fromCons [In (phi `Impl` Bot)]] NegR
-  expandRight phi@(In (P _)) = Atomic phi
-  expandRight phi@(In Top) = Atomic phi
-  expandRight phi@(In Bot) = Atomic phi
+clasSeq :: Sequent s => s (InForm f) -> s (PropForm f)
+clasSeq = (clas <$>)
 
+inSeq :: Sequent s => s (PropForm f) -> s (InForm f)
+inSeq = (In <$>)
+\end{code}
 
+The axioms for intuisionistic formula are the same as for classical formula.
+
+\begin{code}
 instance (Eq p) => Verifiable (InForm p) where
   verifyAxiom :: Sequent s => s (InForm p) -> Bool
-  verifyAxiom s = (In Bot `elem` a) || (In Top `elem` c) || (not . null) (a `intersect` c)
+  verifyAxiom = verifyAxiom . clasSeq
+\end{code}
+
+We see that it is very convenient to declare intuisiontistic functions in terms
+of their classical functions. Therefore, we define more functions to convert between
+intuisionistic and classical data structures.
+
+\begin{code}
+clasRule :: InRule -> PropRule
+clasRule = toEnum . fromEnum
+
+inRule :: PropRule -> InRule
+inRule = toEnum . fromEnum
+
+inExpandable :: Sequent s => Expansion s (PropForm p) PropRule -> Expansion s (InForm p) InRule
+inExpandable (Exp m s r) = Exp (inMerge m) (inSeq <$> s) (inRule r)
+  where
+    inMerge m1 s1 s2 = inSeq $ m1 (clasSeq s1) (clasSeq s2)
+inExpandable (Atomic f) = Atomic (In f)
+\end{code}
+
+Now we can easily define the expansions for intuisionistic logic. Here we can
+reuse the classical expansions
+
+\begin{code}
+instance Eq p => Expandable SimpleSequent (InForm p) InRule where
+  expandLeft :: Eq p => InForm p -> Expansion SimpleSequent (InForm p) InRule
+  expandLeft (In (Neg phi)) = simpleExp [fromAnte [In (phi `Impl` Bot)]] NegL
+  expandLeft (In f) = inExpandable (expandLeft f)
+
+  expandRight :: Eq p => InForm p -> Expansion SimpleSequent (InForm p) InRule
+  expandRight (In (Neg phi)) = simpleExp [fromCons [In (phi `Impl` Bot)]] NegR
+  expandRight (In (phi `Impl` psi)) = Exp mergeRightImpl [S [In phi] [In psi]] ImplR
     where
-      a = ante s
-      c = cons s
+      mergeRightImpl (S a1 _c1) (S a2 c2) = S (nub (a1 ++ a2)) c2
+  expandRight (In f) = inExpandable (expandRight f)
+\end{code}
 
-mergeRightImpl :: Eq a => SimpleSequent a -> SimpleSequent a -> SimpleSequent a
-mergeRightImpl (S a1 _c1) (S a2 c2) = S (nub (a1 ++ a2)) c2
+Finally we also make intuisionistic formulae instances of ToLatex and Arbitrary.
 
-in2clas :: InForm f -> PropForm f
-in2clas (In f) = f
-
-inseq2clas :: SimpleSequent (InForm f) -> SimpleSequent (PropForm f)
-inseq2clas (S a c) = S (map in2clas a) (map in2clas c)
-
+\begin{code}
 instance ToLatex InRule where
-  toLatex ConL = "\\wedge L"
-  toLatex ConR = "\\wedge R"
-  toLatex DisL = "\\vee L"
-  toLatex DisR = "\\vee R"
-  toLatex NegL = "\\neg L"
-  toLatex NegR = "\\neg R"
-  toLatex ImplL = "\\to L"
-  toLatex ImplR = "\\to R"
+  toLatex = toLatex . clasRule
 
 instance ToLatex p => ToLatex (InForm p) where
-  toLatex (In phi) = toLatex phi
+  toLatex = toLatex . clas
 
 instance (Arbitrary p) => Arbitrary (InForm p) where
   arbitrary = In <$> arbitrary
