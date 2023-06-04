@@ -21,7 +21,7 @@ module Sequent
     zipper2simple,
     Expandable (..),
     Expansion (..),
-    SequentTree,
+    SequentTree(..),
     Verifiable (..),
   )
 where

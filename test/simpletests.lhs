@@ -1,3 +1,9 @@
+\ignore{
+\begin{code}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+\end{code}
+}
 \section{Simple Tests}
 \label{sec:simpletests}
 
@@ -5,15 +11,13 @@ We now use the library QuickCheck to randomly generate input for our functions
 and test some properties.
 
 \begin{code}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-
 module Main where
 
 import Utils ( combs, holes, firstJust )
 import Sequent
     ( Sequent(..),
       SimpleSequent(..),
+      SequentTree(..),
       simpleMerge,
       fromAnte,
       fromCons,
@@ -61,11 +65,11 @@ validFormsTex =
 
 validSeqs :: [PSequent Int]
 validSeqs = [
-    S [Neg $ Neg $ P 1] [P 1],
-    S [P 1 `Disj` P 2] [P 1, P 2],
-    S [P 1, P 2] [P 1 `Conj` P 2],
-    S [P 1, P 2] [P 1, P 2]
-  ] ++ map (fromCons . return) validForms
+    Sequent.S [Neg $ Neg $ P 1] [P 1],
+    Sequent.S [P 1 `Disj` P 2] [P 1, P 2],
+    Sequent.S [P 1, P 2] [P 1 `Conj` P 2],
+    Sequent.S [P 1, P 2] [P 1, P 2]
+  ] ++ map (Sequent.fromCons . return) validForms
 
 validSeqsTex :: [String]
 validSeqsTex =
@@ -89,46 +93,52 @@ invalidForms = [
 
 invalidSeqs :: [PSequent Int]
 invalidSeqs = [
-    S [] [P 1, P 2],
-    S [P 1 `Disj` P 2] [P 1]
-  ] ++ map (fromCons . return) invalidForms
+    Sequent.S [] [P 1, P 2],
+    Sequent.S [P 1 `Disj` P 2] [P 1]
+  ] ++ map (Sequent.fromCons . return) invalidForms
 
-fromCons' :: [f] -> SimpleSequent f
-fromCons' = fromCons
+fromCons' :: [f] -> Sequent.SimpleSequent f
+fromCons' = Sequent.fromCons
 
-fromAnte' :: [f] -> SimpleSequent f
-fromAnte' = fromAnte
+fromAnte' :: [f] -> Sequent.SimpleSequent f
+fromAnte' = Sequent.fromAnte
+
+proofTree :: SequentTree SimpleSequent (PropForm Int) PropRule
+proofTree = Application PropSeq.ImplR (S [P 1] [Impl (P (0 :: Int)) (Impl (Conj (P 1) (Neg (P 0))) (P 1))]) [Application PropSeq.ImplR (S [P 1, P 0] [Impl (Conj (P 1) (Neg (P 0))) (P 1)]) [Application PropSeq.ConL (S [P 1, P 0, Conj (P 1) (Neg (P 0))] [P 1]) [Application PropSeq.NegL (Sequent.S [P 1, P 0, P 1, Neg (P 0)] [P 1]) [Axiom (S [P 1, P 0, P 1] [P 1, P 0])]]]]
+
+proofTreeTex :: String
+proofTreeTex = "\\begin{prooftree}\n\\hypo{p_{1},p_{0},p_{1}\\Rightarrow p_{1},p_{0}}\n\\infer1[\\(\\neg L\\)]{p_{1},p_{0},p_{1},\\neg p_{0}\\Rightarrow p_{1}}\n\n\\infer1[\\(\\wedge L\\)]{p_{1},p_{0},p_{1}\\wedge \\neg p_{0}\\Rightarrow p_{1}}\n\n\\infer1[\\(\\to R\\)]{p_{1},p_{0}\\Rightarrow p_{1}\\wedge \\neg p_{0}\\to p_{1}}\n\n\\infer1[\\(\\to R\\)]{p_{1}\\Rightarrow p_{0}\\to (p_{1}\\wedge \\neg p_{0}\\to p_{1})}\n\n\\end{prooftree}"
 
 main :: IO ()
 main = hspec $ do
   describe "SimpleSequent" $ do
     it "fromAnte: cons should be empty" $
-      property (\(fs::[PropForm Int]) -> null $ cons $ fromAnte' fs)
+      property (\(fs::[PropForm Int]) -> null $ Sequent.cons $ fromAnte' fs)
     it "fromAnte: ante is inverse" $
-      property (\(fs::[PropForm Int]) -> ante (fromAnte' fs) == fs)
+      property (\(fs::[PropForm Int]) -> Sequent.ante (fromAnte' fs) == fs)
     it "fromCons: ante should be empty" $
-      property (\(fs::[PropForm Int]) -> null $ ante $ fromCons' fs)
+      property (\(fs::[PropForm Int]) -> null $ Sequent.ante $ fromCons' fs)
     it "fromCons: cons is inverse" $
-      property (\(fs::[PropForm Int]) -> cons (fromCons' fs) == fs)
+      property (\(fs::[PropForm Int]) -> Sequent.cons (fromCons' fs) == fs)
   describe "Properties of propositional logic" $ do
     it "valid sequents are valid" $
-      all (verifyTree . greedyTree) validSeqs `shouldBe` True
+      all (Sequent.verifyTree . Sequent.greedyTree) validSeqs `shouldBe` True
     it "invalid sequents are invalid" $
-      any (verifyTree . greedyTree) invalidSeqs `shouldBe` False
+      any (Sequent.verifyTree . Sequent.greedyTree) invalidSeqs `shouldBe` False
     it "seqTree: leafs cannot be simplified" $
-      property (\(st::PSeqTree Int) -> all seqSimple $ leafs st)
+      property (\(st::PSeqTree Int) -> all Sequent.seqSimple $ Sequent.leafs st)
     it "simpleMerge: ante is merged" $
-      property (\(a::PSequent Int) (b::PSequent Int) -> ante a ++ ante b == ante (a `simpleMerge` b))
+      property (\(a::PSequent Int) (b::PSequent Int) -> Sequent.ante a ++ Sequent.ante b == Sequent.ante (a `Sequent.simpleMerge` b))
     it "simpleMerge: cons is merged" $
-      property (\(a::PSequent Int) (b::PSequent Int) -> cons a ++ cons b == cons (a `simpleMerge` b))
+      property (\(a::PSequent Int) (b::PSequent Int) -> Sequent.cons a ++ Sequent.cons b == Sequent.cons (a `Sequent.simpleMerge` b))
     it "greedy approach works for classical logic" $
-      property (\(a::PSequent Int) -> isJust (prove a) == verifyTree (greedyTree a))
+      property (\(a::PSequent Int) -> isJust (Sequent.prove a) == Sequent.verifyTree (Sequent.greedyTree a))
   describe "ZipperSequent" $ do
     it "zipper2simple inverse of simple2zipper:" $
-      property (\(s::PSequent Int) -> (zipper2simple . simple2zipper) s == s)
+      property (\(s::PSequent Int) -> (Sequent.zipper2simple . Sequent.simple2zipper) s == s)
   describe "Intuisionistic logic" $ do
     it "Intuisionistic truth implies classical truth" $
-      property (\(s::SimpleSequent (InForm Int)) -> isJust (prove s) <= isJust (prove $ inseq2clas s))
+      property (\(s::Sequent.SimpleSequent (InForm Int)) -> isJust (Sequent.prove s) <= isJust (Sequent.prove $ inseq2clas s))
   describe "Utils" $ do
     it "combs: simple test" $
       combs [[1::Int, 2], [3, 4]] `shouldBe` [[1,3],[1,4],[2,3],[2,4]]
@@ -159,6 +169,8 @@ main = hspec $ do
       toLatex <$> validSeqs `shouldBe` validSeqsTex
     it "Intuitionistic formulas are formatted the same as normal ones" $
       property (\(x::PropForm Int) -> toLatex (In x) == toLatex x)
+    it "SequentTree gets exported properly" $
+      toLatex proofTree `shouldBe` proofTreeTex
 
 
 \end{code}
