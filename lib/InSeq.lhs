@@ -11,6 +11,7 @@ import Sequent
 import Data.List
 import Test.QuickCheck (Arbitrary, arbitrary)
 \end{code}
+}
 
 \subsection{Intuitionistic logic}
 With all of the work we have done so far, implementing intuitionistic logic is
