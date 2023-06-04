@@ -3,8 +3,5 @@ cradle:
     - path: "./lib"
       component: "seqcal:lib"
 
-    - path: "./exec/Main.lhs"
-      component: "seqcal:exe:myprogram"
-
     - path: "./test"
       component: "seqcal:test:simpletests"

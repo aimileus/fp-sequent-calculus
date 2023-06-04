@@ -53,9 +53,6 @@ instance Eq p => Expandable SimpleSequent (InForm p) InRule where
   expandRight phi@(In Top) = Atomic phi
   expandRight phi@(In Bot) = Atomic phi
 
-instance (Arbitrary p) => Arbitrary (InForm p) where
-  arbitrary = In <$> arbitrary
-
 
 instance (Eq p) => Verifiable (InForm p) where
   verifyAxiom :: Sequent s => s (InForm p) -> Bool
@@ -86,4 +83,6 @@ instance ToLatex InRule where
 instance ToLatex p => ToLatex (InForm p) where
   toLatex (In phi) = toLatex phi
 
+instance (Arbitrary p) => Arbitrary (InForm p) where
+  arbitrary = In <$> arbitrary
 \end{code}
