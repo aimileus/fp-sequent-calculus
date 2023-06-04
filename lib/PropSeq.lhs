@@ -15,7 +15,6 @@ letter.
 \begin{code}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module PropSeq where
 
@@ -123,7 +122,14 @@ type PSeqTree p = SequentTree SimpleSequent (PropForm p) PropRule
 data PropRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 
-instance Expandable SimpleSequent (PropForm p) PropRule where
+instance (Eq p) => Verifiable (PropForm p) where
+  verifyAxiom :: Sequent s => s (PropForm p) -> Bool
+  verifyAxiom s = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
+    where
+      a = ante s
+      c = cons s
+
+instance Eq p => Expandable SimpleSequent (PropForm p) PropRule where
   expandLeft :: PropForm p -> Expansion SimpleSequent (PropForm p) PropRule
   expandLeft (phi `Impl` psi) = simpleExp [fromAnte [psi], fromCons [phi]] ImplL
   expandLeft (phi `Disj` psi) = (simpleExp . fmap fromAnte) [[phi], [psi]] DisL
@@ -141,19 +147,6 @@ instance Expandable SimpleSequent (PropForm p) PropRule where
   expandRight phi@(P _) = Atomic phi
   expandRight phi@Top = Atomic phi
   expandRight phi@Bot = Atomic phi
-
-instance (Eq p) => Verifiable (PropForm p) where
-  verifyAxiom :: Sequent s => s (PropForm p) -> Bool
-  verifyAxiom s = (Bot `elem` a) || (Top `elem` c) || (not . null) (a `intersect` c)
-    where
-      a = ante s
-      c = cons s
-
-  formSimple :: PropForm p -> Bool
-  formSimple (P _) = True
-  formSimple Top = True
-  formSimple Bot = True
-  formSimple _ = False
 \end{code}
 We also implement the Arbitrary class in order to perform tests.
 \begin{code}

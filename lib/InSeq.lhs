@@ -11,6 +11,7 @@ import Sequent
 import Data.List
 import Test.QuickCheck (Arbitrary, arbitrary)
 \end{code}
+}
 
 \subsection{Intuitionistic logic}
 With all of the work we have done so far, implementing intuitionistic logic is
@@ -62,8 +63,6 @@ instance (Eq p) => Verifiable (InForm p) where
     where
       a = ante s
       c = cons s
-
-  formSimple (In phi) = formSimple phi
 
 mergeRightImpl :: Eq a => SimpleSequent a -> SimpleSequent a -> SimpleSequent a
 mergeRightImpl (S a1 _c1) (S a2 c2) = S (nub (a1 ++ a2)) c2

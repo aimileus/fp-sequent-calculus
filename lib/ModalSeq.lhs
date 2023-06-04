@@ -20,7 +20,10 @@ expPropToModal = undefined
 -- expPropToModal (Atomic f) = Atomic (Prop f)
 
 
-instance Expandable SimpleSequent (ModalForm p) ModalRule where
+instance Eq p => Verifiable (ModalForm p) where
+  verifyAxiom = undefined
+
+instance (Eq p) => Expandable SimpleSequent (ModalForm p) ModalRule where
   expandLeft :: ModalForm p -> Expansion SimpleSequent (ModalForm p) ModalRule
   expandLeft (Dia _f) = undefined
   expandLeft (Box _f) = undefined

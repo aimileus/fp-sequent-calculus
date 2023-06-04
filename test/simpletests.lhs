@@ -17,7 +17,6 @@ import Sequent
       simpleMerge,
       fromAnte,
       fromCons,
-      seqSimple,
       leafs,
       greedyTree,
       verifyTree,
@@ -116,7 +115,7 @@ main = hspec $ do
     it "invalid sequents are invalid" $
       any (verifyTree . greedyTree) invalidSeqs `shouldBe` False
     it "seqTree: leafs cannot be simplified" $
-      property (\(st::PSeqTree Int) -> all seqSimple $ leafs st)
+      property (\(st::PSeqTree Int) -> all (null . expand) $ leafs st)
     it "simpleMerge: ante is merged" $
       property (\(a::PSequent Int) (b::PSequent Int) -> ante a ++ ante b == ante (a `simpleMerge` b))
     it "simpleMerge: cons is merged" $

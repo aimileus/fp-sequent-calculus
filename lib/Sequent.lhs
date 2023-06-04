@@ -11,7 +11,6 @@ module Sequent
     SimpleSequent (..),
     simpleMerge,
     simpleExp,
-    seqSimple,
     leafs,
     greedyTree,
     verifyTree,
@@ -79,7 +78,6 @@ data SequentTree s f r
 
 class Verifiable f where
   verifyAxiom :: (Sequent s) => s f -> Bool
-  formSimple :: f -> Bool
 
 data SimpleSequent f = S [f] [f] deriving (Eq, Show)
 
@@ -96,10 +94,6 @@ instance Sequent SimpleSequent where
         where
           lefts = fmap (mapFst (`S` r) . mapSnd expandLeft) (holes l)
           rights = fmap (mapFst (S l) . mapSnd expandRight) (holes r)
-
-seqSimple :: (Verifiable f) => SimpleSequent f -> Bool
-seqSimple (S a c) = all formSimple a && all formSimple c
-
 \end{code}
 We use a typeclass for anything that looks like a sequent, which will allow us
 to create different kinds of sequents. We will show an example of this later.
@@ -161,7 +155,7 @@ compute expansions from a single formula which occurs somewhere in a sequent.
 This is what the Expandable typeclass represents.
 
 \begin{code}
-class Expandable s f r | f -> r where
+class (Sequent s, Verifiable f) => Expandable s f r | f -> r where
   expandLeft :: f -> Expansion s f r
   expandRight :: f -> Expansion s f r
 
@@ -189,22 +183,20 @@ depth first search and verify whether the leaves are axioms to see if it is a
 valid proof.
 \begin{code}
 greedyTree :: (Sequent s, Expandable s f r) => s f -> SequentTree s f r
-greedyTree zs = tree (expand zs)
+greedyTree zs = if verifyAxiom zs then Axiom zs else tree (expand zs)
   where
     tree [] = Axiom zs
     tree ((Expd children r) : _) = Application r zs (greedyTree <$> children)
 
-allValidTrees :: forall s f r. (Sequent s, Verifiable f, Expandable s f r) => s f -> [SequentTree s f r]
+allValidTrees :: Expandable s f r => s f -> [SequentTree s f r]
 allValidTrees zs = trees (expand zs)
   where
-    -- trees :: [Expanded s f r] -> [SequentTree s f r]
     trees [] = [Axiom zs | verifyAxiom zs]
-    trees exps = exps >>= expandSingle
+    trees e = e >>= expandSingle
 
-    -- expandSingle :: Expanded s f r -> [SequentTree s f r]
     expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
 
-prove :: (Sequent s, Verifiable f, Expandable s f r) => s f -> Maybe (SequentTree s f r)
+prove :: Expandable s f r => s f -> Maybe (SequentTree s f r)
 prove = listToMaybe . allValidTrees
 \end{code}
 
@@ -258,8 +250,6 @@ instance Sequent ZipperSequent where
   fromCons :: [f] -> ZipperSequent f
   fromCons = simple2zipper . fromCons
 
-  -- TODO: extend the Expanded type with a None like type. Then the tree
-  -- function could be generalized between implementations of Sequent
   expand (ZS (Z [] _) (Z [] _)) = []
   expand (ZS (Z (x:xs) y) z) = maybeToList $ ZS (Z xs y) z `applyExpansion` expandLeft x
   expand (ZS x (Z (y:ys) z)) = maybeToList $ ZS x (Z ys z) `applyExpansion` expandRight y
