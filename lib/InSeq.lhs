@@ -1,15 +1,34 @@
+\ignore{
 \begin{code}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module InSeq where
 
+import Latex (ToLatex (..))
 import PropSeq (PropForm (..))
 import Sequent
 import Data.List
-import Latex
+\end{code}
+}
 
-newtype InForm p = In (PropForm p) deriving (Show, Eq)
+\subsection{Intuitionistic logic}
+With all of the work we have done so far, implementing intuitionistic logic is
+rather easy. We can even reuse the type of propositional formulas from before.
+
+The axioms of intuitionistic sequent calculus are the same as for
+propositional logic. In fact, only a single rule is different between the two:
+the right implication rule is given by
+\[
+    \inferrule{\sequent{\Gamma,\varphi}{\psi}}{\sequent{\Gamma}{\varphi\to\psi,\Delta}}\to R
+\]
+where \(\Delta\) is any arbitrary multiset. We implement expansion of
+\(\neg\varphi\) using the rules for implication as well by simply handling
+\(\neg\varphi\) as if it were the formula \(\varphi\to\bot\).
+
+\begin{code}
+newtype InForm p = In (PropForm p)
+  deriving (Eq, Show)
 
 data InRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
@@ -58,6 +77,5 @@ instance ToLatex InRule where
 
 instance ToLatex p => ToLatex (InForm p) where
   toLatex (In phi) = toLatex phi
-
 
 \end{code}

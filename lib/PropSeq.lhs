@@ -15,6 +15,7 @@ letter.
 \begin{code}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module PropSeq where
 
@@ -108,10 +109,12 @@ We give a couple of examples of proofs of sequents:
     \end{prooftree}
 
     \caption{A proof of the tautology \((p\to q)\to((\neg p\to q)\to q)\)}
+    \label{fig:tauto2}
 \end{figure}
 
 We implement the types from the sequent module in order to use its functions to
-create proofs:
+create proofs. This is simply according to the definition of sequent calculus
+above.
 \begin{code}
 type PSequent p = SimpleSequent (PropForm p)
 
@@ -169,23 +172,103 @@ instance (Arbitrary p) => Arbitrary (PropForm p) where
           ]
 \end{code}
 
+We also implement printing a formula as latex expression in order to export
+our generated proofs.
+
 \begin{code}
 instance ToLatex PropRule where
-  toLatex ConL = "\\(\\wedge L\\)"
-  toLatex ConR = "\\(\\wedge R\\)"
-  toLatex DisL = "\\(\\vee L\\)"
-  toLatex DisR = "\\(\\vee R\\)"
-  toLatex NegL = "\\(\\neg L\\)"
-  toLatex NegR = "\\(\\neg R\\)"
-  toLatex ImplL = "\\(\\to L\\)"
-  toLatex ImplR = "\\(\\to R\\)"
+  toLatex ConL = "\\wedge L"
+  toLatex ConR = "\\wedge R"
+  toLatex DisL = "\\vee L"
+  toLatex DisR = "\\vee R"
+  toLatex NegL = "\\neg L"
+  toLatex NegR = "\\neg R"
+  toLatex ImplL = "\\to L"
+  toLatex ImplR = "\\to R"
+
+isCon :: PropForm p -> Bool
+isCon (Conj _ _) = True
+isCon _ = False
+
+isDis :: PropForm p -> Bool
+isDis (Disj _ _) = True
+isDis _ = False
+
+isImpl :: PropForm p -> Bool
+isImpl (Impl _ _) = True
+isImpl _ = False
+
+isNeg :: PropForm p -> Bool
+isNeg (Neg _) = True
+isNeg _ = False
+
+isProp :: PropForm p -> Bool
+isProp (P _) = True
+isProp _ = False
 
 instance ToLatex p => ToLatex (PropForm p) where
   toLatex (P p) = "p_{" ++ toLatex p ++ "}"
   toLatex Top = "\\top "
   toLatex Bot = "\\bot "
-  toLatex (Conj phi psi) = "(" ++ toLatex phi ++ ")" ++ "\\wedge " ++ "(" ++ toLatex psi ++ ")"
-  toLatex (Disj phi psi) = "(" ++ toLatex phi ++ ")" ++ "\\vee " ++ "(" ++ toLatex psi ++ ")"
-  toLatex (Impl phi psi) = "(" ++ toLatex phi ++ ")" ++ "\\to " ++ "(" ++ toLatex psi ++ ")"
+  toLatex (Conj phi psi) = leftForm ++ "\\wedge " ++ rightForm
+    where
+      leftForm = if any ($ phi) [isCon, isNeg, isProp] then toLatex phi else "(" ++ toLatex phi ++ ")"
+      rightForm = if any ($ psi) [isCon, isNeg, isProp] then toLatex psi else "(" ++ toLatex psi ++ ")"
+
+
+  toLatex (Disj phi psi) = leftForm ++ "\\vee " ++ rightForm
+    where
+      leftForm = if any ($ phi) [isDis, isNeg, isProp] then toLatex phi else "(" ++ toLatex phi ++ ")"
+      rightForm = if any ($ psi) [isDis, isNeg, isProp] then toLatex psi else "(" ++ toLatex psi ++ ")"
+
+
+  toLatex (Impl phi psi) = leftForm ++ "\\to " ++ rightForm
+    where
+      leftForm = if any ($ phi) [isDis, isCon, isNeg, isProp] then toLatex phi else "(" ++ toLatex phi ++ ")"
+      rightForm = if any ($ psi) [isDis, isCon, isNeg, isProp] then toLatex psi else "(" ++ toLatex psi ++ ")"
+
+  toLatex (Neg phi@(Neg _)) = "\\neg " ++ toLatex phi
+  toLatex (Neg phi@(P _)) = "\\neg " ++ toLatex phi
   toLatex (Neg phi) = "\\neg " ++ "(" ++ toLatex phi ++ ")"
 \end{code}
+
+Our code can easily now easily produce proofs of simple and more complex
+sequents. For example evaluating
+\begin{verbatim}
+putStr $ toLatex $ head $ allValidTrees (S [Neg $ Neg $ P (0::Int)] [P 0])
+\end{verbatim}
+will yield a piece of code that renders the following proof tree:
+\[
+\begin{prooftree}\hypo{p_{0}\Rightarrow p_{0}}
+\infer1[\(\neg R\)]{\Rightarrow p_{0},\neg p_{0}}
+
+\infer1[\(\neg L\)]{\neg\neg p_{0}\Rightarrow p_{0}}
+\end{prooftree}
+\]
+
+Trying something more complicated, for example the sequent from
+\Cref{fig:tauto2} we get:
+\[
+\begin{prooftree}
+\hypo{p_{1},p_{1}\Rightarrow p_{1}}
+\hypo{p_{1},p_{0}\Rightarrow p_{1}}
+\infer1[\(\neg R\)]{p_{1}\Rightarrow p_{1},\neg p_{0}}
+
+\infer2[\(\to L\)]{p_{1},\neg p_{0}\to p_{1}\Rightarrow p_{1}}
+
+\infer1[\(\to R\)]{p_{1}\Rightarrow (\neg p_{0}\to p_{1})\to p_{1}}
+
+\hypo{p_{1}\Rightarrow p_{0},p_{1}}
+\hypo{p_{0}\Rightarrow p_{0},p_{1}}
+\infer1[\(\neg R\)]{\Rightarrow p_{0},p_{1},\neg p_{0}}
+
+\infer2[\(\to L\)]{\neg p_{0}\to p_{1}\Rightarrow p_{0},p_{1}}
+
+\infer1[\(\to R\)]{\Rightarrow (\neg p_{0}\to p_{1})\to p_{1},p_{0}}
+
+\infer2[\(\to L\)]{p_{0}\to p_{1}\Rightarrow (\neg p_{0}\to p_{1})\to p_{1}}
+
+\infer1[\(\to R\)]{\Rightarrow (p_{0}\to p_{1})\to ((\neg p_{0}\to p_{1})\to p_{1})}
+
+\end{prooftree}
+\]
