@@ -27,6 +27,7 @@ import Sequent
       )
 import PropSeq
 import InSeq
+import Latex
 
 import Data.List
 
@@ -49,6 +50,15 @@ validForms =
     ((P 1 `Impl` P 2) `Conj` (P 2 `Impl` P 3)) `Impl` (P 1 `Impl` P 3)
   ]
 
+validFormsTex :: [String]
+validFormsTex =
+  [
+    "p_{1}\\vee \\neg p_{1}",
+    "\\neg (p_{1}\\wedge \\neg p_{1})",
+    "\\top ",
+    "(p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})"
+  ]
+
 validSeqs :: [PSequent Int]
 validSeqs = [
     S [Neg $ Neg $ P 1] [P 1],
@@ -56,6 +66,18 @@ validSeqs = [
     S [P 1, P 2] [P 1 `Conj` P 2],
     S [P 1, P 2] [P 1, P 2]
   ] ++ map (fromCons . return) validForms
+
+validSeqsTex :: [String]
+validSeqsTex =
+  [ "\\neg \\neg p_{1}\\Rightarrow p_{1}",
+    "p_{1}\\vee p_{2}\\Rightarrow p_{1},p_{2}",
+    "p_{1},p_{2}\\Rightarrow p_{1}\\wedge p_{2}",
+    "p_{1},p_{2}\\Rightarrow p_{1},p_{2}",
+    "\\Rightarrow p_{1}\\vee \\neg p_{1}",
+    "\\Rightarrow \\neg (p_{1}\\wedge \\neg p_{1})",
+    "\\Rightarrow \\top ",
+    "\\Rightarrow (p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})"
+  ]
 
 invalidForms :: [PropForm Int]
 invalidForms = [
@@ -130,6 +152,13 @@ main = hspec $ do
       property (\(x::[Maybe Int]) -> isNothing (firstJust $ filter isNothing x))
     it "firstJust: element of list (when non-empty)" $
       property (\(x::[Maybe Int]) -> null x || firstJust x `elem` x)
+  describe "Latex" $ do
+    it "Formulas get exported properly" $
+      toLatex <$> validForms `shouldBe` validFormsTex
+    it "Sequents get exported properly" $
+      toLatex <$> validSeqs `shouldBe` validSeqsTex
+    it "Intuitionistic formulas are formatted the same as normal ones" $
+      property (\(x::PropForm Int) -> toLatex (In x) == toLatex x)
 
 
 \end{code}
