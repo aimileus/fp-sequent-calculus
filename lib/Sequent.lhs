@@ -35,7 +35,7 @@ import Utils
 \section{Sequent calculus}
 
 There are many proof systems for all different sorts of logics. We have chosen
-to implement generate proofs using a system called sequent calculus. A proof in
+to generate proofs using a system called sequent calculus. A proof in
 sequent calculus unsurprisingly consists of sequents: two finite multisets of
 formulas \(\Gamma,\Delta\) written as \(\sequent{\Gamma}{\Delta}\). This can be
 interpreted as a single formula by taking the conjunct of \(\Gamma\) and the
@@ -103,7 +103,7 @@ leafs :: SequentTree s f r -> [s f]
 leafs (Axiom f) = return f
 leafs (Application _ _ y) = y >>= leafs
 
-verifyTree :: (Verifiable f) => SequentTree SimpleSequent f r -> Bool
+verifyTree :: (Verifiable f, Sequent s) => SequentTree s f r -> Bool
 verifyTree (Axiom f) = verifyAxiom f
 verifyTree (Application _ _ ys) = all verifyTree ys
 \end{code}

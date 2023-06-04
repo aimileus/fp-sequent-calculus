@@ -19,12 +19,18 @@ class ToLatex a where
 instance ToLatex Int where
   toLatex :: Int -> String
   toLatex = show
-
+\end{code}
+As it is possible that a prove function may fail, a prove function may return
+something of type Maybe. For convenience in interactive use, implement a \LaTeX{}
+generator for the Maybe type.
+\begin{code}
 instance (ToLatex a) => ToLatex (Maybe a) where
   toLatex :: Maybe a -> String
-  toLatex Nothing = error "Is nothing"
+  toLatex Nothing = ""
   toLatex (Just a) = toLatex a
-
+\end{code}
+Finally add another convenience function to directly print \LaTeX{} to the console.
+\begin{code}
 printLatex :: ToLatex a => a -> IO ()
 printLatex = putStrLn . toLatex
 \end{code}

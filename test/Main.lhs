@@ -28,8 +28,8 @@ import Sequent
       prove,
       )
 import ZipperSequent
-    ( simple2zipper,
-      zipper2simple,
+    ( simpleSeq,
+      zipSeq,
       )
 import PropSeq
 import InSeq
@@ -62,8 +62,8 @@ validIForms = In <$> [
     ((p --> q) & (q --> r)) --> (p --> r)
   ]
 
-validISeqs :: [ISequent Int]
-validISeqs = (inSeq <$> [
+validISequents :: [ISequent Int]
+validISequents = (inSeq <$> [
     S [p `Disj` q] [p, q],
     S [p, q] [p & q],
     S [p, q] [p, q]
@@ -76,11 +76,11 @@ validForms =
     Neg (Neg p) --> p
   ]
 
-validSeqs :: [PSequent Int]
-validSeqs = [
+validSequents :: [PSequent Int]
+validSequents = [
     S [Neg (Neg p)] [p],
     S [] [p, Neg p]
-  ] ++ (clasSeq <$> validISeqs) ++ fromForms validForms
+  ] ++ (clasSeq <$> validISequents) ++ fromForms validForms
 
 invalidForms :: [PropForm Int]
 invalidForms = [
@@ -90,8 +90,8 @@ invalidForms = [
     Bot
   ]
 
-invalidSeqs :: [PSequent Int]
-invalidSeqs = [
+invalidSequents :: [PSequent Int]
+invalidSequents = [
     S [] [p, q],
     S [p `Disj` q] [p]
   ] ++ fromForms invalidForms
@@ -102,24 +102,24 @@ invalidIForms = In <$> [
     Neg (Neg p) --> p
   ]
 
-invalidISeqs :: [ISequent Int]
-invalidISeqs = (inSeq <$> [
+invalidISequents :: [ISequent Int]
+invalidISequents = (inSeq <$> [
     S [Neg (Neg p)] [p],
     S [] [p, Neg p]
-  ]) ++ (inSeq <$> invalidSeqs) ++ fromForms invalidIForms
+  ]) ++ (inSeq <$> invalidSequents) ++ fromForms invalidIForms
 
-validMSeqs :: [MSequent Int]
-validMSeqs =  [
+validMSequents :: [MSequent Int]
+validMSequents =  [
     S [Dia (Prop (p `Disj` q))] [Dia (Prop p), Dia (Prop q)],
     S [Dia (Prop (p `Impl` q)), Box (Prop p)] [Dia (Prop q)],
     S [(Box . Dia . Box . Dia) (Prop p)] [(Box . Dia ) (Prop p)],
     S [(Box . Dia . Box) (Prop p), (Box . Dia . Box) (Prop q)] [(Box . Dia . Box) (Prop (p `Conj` q))]
-  ] ++ (modSeq <$> validSeqs)
+  ] ++ (modSeq <$> validSequents)
 
-invalidMSeqs :: [MSequent Int]
-invalidMSeqs = [
+invalidMSequents :: [MSequent Int]
+invalidMSequents = [
     S [(Dia . Box) (Prop p), (Dia . Box) (Prop q)] [Prop (p `Conj` q)]
-  ] ++ (modSeq <$> invalidSeqs)
+  ] ++ (modSeq <$> invalidSequents)
 \end{code}
 
 To test the \LaTeX{} generation code, we have written what the corresponding
@@ -132,8 +132,8 @@ validFormsTex =
     "\\neg \\neg p_{1}\\to p_{1}"
   ]
 
-validSeqsTex :: [String]
-validSeqsTex =
+validSequentsTex :: [String]
+validSequentsTex =
   [
     "\\neg \\neg p_{1}\\Rightarrow p_{1}",
     "\\Rightarrow p_{1},\\neg p_{1}",
@@ -178,9 +178,9 @@ main = hspec $ do
       property (\(fs::[PropForm Int]) -> Sequent.cons (fromCons' fs) == fs)
   describe "Properties of propositional logic" $ do
     it "valid sequents are valid" $
-      all (Sequent.verifyTree . Sequent.greedyTree) validSeqs `shouldBe` True
+      all (Sequent.verifyTree . Sequent.greedyTree) validSequents `shouldBe` True
     it "invalid sequents are invalid" $
-      any (Sequent.verifyTree . Sequent.greedyTree) invalidSeqs `shouldBe` False
+      any (Sequent.verifyTree . Sequent.greedyTree) invalidSequents `shouldBe` False
     it "seqTree: leafs cannot be simplified" $
       property (\(st::PSeqTree Int) -> all (\x -> null (expand x) || verifyAxiom x) $ leafs st)
     it "simpleMerge: ante is merged" $
@@ -190,22 +190,26 @@ main = hspec $ do
     it "greedy approach works for classical logic" $
       property (\(a::PSequent Int) -> isJust (Sequent.prove a) == Sequent.verifyTree (Sequent.greedyTree a))
   describe "ZipperSequent" $ do
-    it "zipper2simple inverse of simple2zipper:" $
-      property (\(s::PSequent Int) -> (zipper2simple . simple2zipper) s == s)
+    it "simpleSeq inverse of zipSeq:" $
+      property (\(s::PSequent Int) -> (simpleSeq . zipSeq) s == s)
+    it "valid sequents are valid" $
+      all (Sequent.verifyTree . Sequent.greedyTree) (zipSeq <$> validSequents) `shouldBe` True
+    it "invalid sequents are invalid" $
+      any (Sequent.verifyTree . Sequent.greedyTree) (zipSeq <$> invalidSequents) `shouldBe` False
   describe "Properties of intuitionistic logic" $ do
     it "Intuitionistic truth implies classical truth" $
       property (\(s::SimpleSequent (InForm Int)) -> isJust (prove s) <= isJust (prove $ clasSeq s))
     it "valid sequents are valid" $
-      all (isJust . prove) validISeqs `shouldBe` True
+      all (isJust . prove) validISequents `shouldBe` True
     it "invalid sequents are invalid" $
-      any (isJust . prove) invalidISeqs `shouldBe` False
+      any (isJust . prove) invalidISequents `shouldBe` False
   describe "Properties of modal logic" $ do
     it "Modal truth equals classical truth for classical formulae" $
       property (\(s::SimpleSequent (PropForm Int)) -> isJust (prove s) == isJust (prove $ modSeq s))
     it "valid sequents are valid" $
-      all (isJust . prove) validMSeqs `shouldBe` True
+      all (isJust . prove) validMSequents `shouldBe` True
     it "invalid sequents are invalid" $
-      any (isJust . prove) invalidMSeqs `shouldBe` False
+      any (isJust . prove) invalidMSequents `shouldBe` False
 
   describe "Utils" $ do
     it "combs: simple test" $
@@ -234,7 +238,7 @@ main = hspec $ do
     it "Formulas get exported properly" $
       toLatex <$> validForms `shouldBe` validFormsTex
     it "Sequents get exported properly" $
-      toLatex <$> validSeqs `shouldBe` validSeqsTex
+      toLatex <$> validSequents `shouldBe` validSequentsTex
     it "Intuitionistic formulas are formatted the same as normal ones" $
       property (\(x::PropForm Int) -> toLatex (In x) == toLatex x)
     it "Intuitionistic sequent trees are formatted the same as normal ones" $
