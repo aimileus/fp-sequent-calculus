@@ -35,7 +35,7 @@ import Utils
 \section{Sequent calculus}
 
 There are many proof systems for all different sorts of logics. We have chosen
-to generate proofs using a system called sequent calculus. A proof in
+to generate proofs using a system called sequent calculus. \cite{syllabus} A proof in
 sequent calculus unsurprisingly consists of sequents: two finite multisets of
 formulas \(\Gamma,\Delta\) written as \(\sequent{\Gamma}{\Delta}\). This can be
 interpreted as a single formula by taking the conjunct of \(\Gamma\) and the
@@ -114,6 +114,7 @@ in a simple list.
 data SimpleSequent f = S [f] [f] deriving (Eq, Show)
 
 instance Sequent SimpleSequent where
+  ante :: SimpleSequent f -> [f]
   ante (S a _) = a
   cons (S _ c) = c
   fromAnte xs = S xs []

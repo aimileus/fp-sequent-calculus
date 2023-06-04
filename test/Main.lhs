@@ -2,15 +2,7 @@
 \begin{code}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-\end{code}
-}
-\section{Simple Tests}
-\label{sec:simpletests}
 
-We now use the library QuickCheck to randomly generate input for our functions
-and test some properties.
-
-\begin{code}
 module Main where
 
 import Utils ( combs, holes, firstJust )
@@ -41,7 +33,12 @@ import Data.List
 import Test.Hspec
 import Test.QuickCheck
 import Data.Maybe (isJust, isNothing)
-\end{code}
+}
+\section{Simple Tests}
+\label{sec:simpletests}
+
+We now use the library QuickCheck to randomly generate input for our functions
+and test some properties.
 
 In order to make it more likely that our code works correctly we have
 implemented a test suite. First we have written a list of formula that either

@@ -62,7 +62,7 @@ The following are the axioms of propositional sequent calculus:
 \[
     \sequent{\bot,\Gamma}{\Delta}\qquad\sequent{\Gamma}{\Delta,\top}\qquad\sequent{\Gamma,\varphi}{\varphi,\Delta}
 \]
-The inference rules are given in \Cref{fig:seq-rules}.
+The inference rules are given in \Cref{fig:seq-rules} from \cite{syllabus}.
 \begin{figure}[H]
     \begin{mathpar}
         \inferrule{\sequent{\Gamma,\varphi,\psi}{\Delta}}{\sequent{\Gamma,\varphi\wedge\psi}{\Delta}}\wedge L

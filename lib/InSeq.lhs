@@ -23,7 +23,7 @@ the right implication rule is given by
 \[
     \inferrule{\sequent{\Gamma,\varphi}{\psi}}{\sequent{\Gamma}{\varphi\to\psi,\Delta}}\to R
 \]
-where \(\Delta\) is any arbitrary multiset. We implement expansion of
+where \(\Delta\) is any arbitrary multiset. \cite{syllabus} We implement expansion of
 \(\neg\varphi\) using the rules for implication as well by simply handling
 \(\neg\varphi\) as if it were the formula \(\varphi\to\bot\).
 
