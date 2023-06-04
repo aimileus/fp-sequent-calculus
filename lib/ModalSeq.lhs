@@ -8,6 +8,7 @@ module ModalSeq where
 import PropSeq
 import Sequent
 import Data.List
+import Latex
 \end{code}}
 \section{Modal Logic}
 We can also use our Sequent Calculus prover for modal logic formula. Modal logic
@@ -63,21 +64,25 @@ It is difficult to convert a merge function on \texttt{PropForm}, to a merge
 function on \texttt{ModalForm}. Here we abuse the fact that we know for
 classical logic, the merge function \texttt{\_m} will be \texttt{simpleMerge}.
 \begin{code}
+modSeq :: Sequent s => s (PropForm p) -> s (ModalForm p)
+modSeq = (Prop <$>)
+
 expPropToModal :: Expansion SimpleSequent (PropForm p) PropRule -> Expansion SimpleSequent (ModalForm p) ModalRule
-expPropToModal (Exp _m e r) = simpleExp ((Prop <$>) <$> e) (PropR r)
+expPropToModal (Exp _m e r) = simpleExp (modSeq <$> e) (PropR r)
 expPropToModal (Atomic f) = Atomic (Prop f)
 \end{code}
 Then we can implement the \texttt{mergeMod} function to convert \(\Gamma\) and
 \(\Delta\) to \(\Gamma^*\) and \(\Delta^*\).
 \begin{code}
 mergeMod :: MSequent p -> MSequent p -> MSequent p
-mergeMod (S a1 c1) (S a2 c2) = S (a1 ++ filter isBox a2) (c1 ++ filter isDia c2) where
+mergeMod (S a1 c1) (S a2 c2) = S (filter isBox a1 ++ a2) (filter isDia c1 ++ c2) where
   isBox (Box _) = True
   isBox _ = False
 
   isDia (Dia _) = True
   isDia _ = False
 \end{code}
+
 With the prerequisites, it is then fairly easy to define the expansions for
 modal logic.
 \begin{code}
@@ -95,3 +100,17 @@ instance (Eq p) => Expandable SimpleSequent (ModalForm p) ModalRule where
 Again it is easy to see that as with the intuitionistic classical logic, a greedy
 search is not always sufficient to find a proof. Therefore it is necessary to use
 a more thorough search algorithm, such as \texttt{allValidTrees}.
+
+\begin{code}
+instance ToLatex p => ToLatex (ModalForm p) where
+  toLatex (Prop f) = toLatex f
+  toLatex (Box f) = "\\Box (" ++ toLatex f ++ ")"
+  toLatex (Dia f) = "\\Diamond (" ++ toLatex f ++ ")"
+
+instance ToLatex ModalRule where
+  toLatex BoxL = "\\Box L"
+  toLatex BoxR = "\\Box R"
+  toLatex DiaL = "\\Diamond L"
+  toLatex DiaR = "\\Diamond R"
+  toLatex (PropR f) = toLatex f
+\end{code}

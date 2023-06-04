@@ -33,6 +33,7 @@ import ZipperSequent
       )
 import PropSeq
 import InSeq
+import ModalSeq
 import Latex
 
 import Data.List
@@ -106,6 +107,19 @@ invalidISeqs = (inSeq <$> [
     S [Neg (Neg p)] [p],
     S [] [p, Neg p]
   ]) ++ (inSeq <$> invalidSeqs) ++ fromForms invalidIForms
+
+validMSeqs :: [MSequent Int]
+validMSeqs =  [
+    S [Dia (Prop (p `Disj` q))] [Dia (Prop p), Dia (Prop q)],
+    S [Dia (Prop (p `Impl` q)), Box (Prop p)] [Dia (Prop q)],
+    S [(Box . Dia . Box . Dia) (Prop p)] [(Box . Dia ) (Prop p)],
+    S [(Box . Dia . Box) (Prop p), (Box . Dia . Box) (Prop q)] [(Box . Dia . Box) (Prop (p `Conj` q))]
+  ] ++ (modSeq <$> validSeqs)
+
+invalidMSeqs :: [MSequent Int]
+invalidMSeqs = [
+    S [(Dia . Box) (Prop p), (Dia . Box) (Prop q)] [Prop (p `Conj` q)]
+  ] ++ (modSeq <$> invalidSeqs)
 \end{code}
 
 To test the \LaTeX{} generation code, we have written what the corresponding
@@ -134,7 +148,7 @@ validSeqsTex =
     "\\Rightarrow \\neg \\neg p_{1}\\to p_{1}"
   ]
 \end{code}
-We also have written the LaTeX code of a proof tree.Applicative
+We also have written the LaTeX code of a proof
 \begin{code}
 proofTree :: SequentTree SimpleSequent (PropForm Int) PropRule
 proofTree = Application PropSeq.ImplR (S [P 1] [Impl (P (0 :: Int)) (Impl (Conj (P 1) (Neg (P 0))) (P 1))]) [Application PropSeq.ImplR (S [P 1, P 0] [Impl (Conj (P 1) (Neg (P 0))) (P 1)]) [Application PropSeq.ConL (S [P 1, P 0, Conj (P 1) (Neg (P 0))] [P 1]) [Application PropSeq.NegL (Sequent.S [P 1, P 0, P 1, Neg (P 0)] [P 1]) [Axiom (S [P 1, P 0, P 1] [P 1, P 0])]]]]
@@ -185,6 +199,14 @@ main = hspec $ do
       all (isJust . prove) validISeqs `shouldBe` True
     it "invalid sequents are invalid" $
       any (isJust . prove) invalidISeqs `shouldBe` False
+  describe "Properties of modal logic" $ do
+    it "Modal truth equals classical truth for classical formulae" $
+      property (\(s::SimpleSequent (PropForm Int)) -> isJust (prove s) == isJust (prove $ modSeq s))
+    it "valid sequents are valid" $
+      all (isJust . prove) validMSeqs `shouldBe` True
+    it "invalid sequents are invalid" $
+      any (isJust . prove) invalidMSeqs `shouldBe` False
+
   describe "Utils" $ do
     it "combs: simple test" $
       combs [[1::Int, 2], [3, 4]] `shouldBe` [[1,3],[1,4],[2,3],[2,4]]
@@ -215,6 +237,8 @@ main = hspec $ do
       toLatex <$> validSeqs `shouldBe` validSeqsTex
     it "Intuitionistic formulas are formatted the same as normal ones" $
       property (\(x::PropForm Int) -> toLatex (In x) == toLatex x)
+    it "Intuitionistic sequent trees are formatted the same as normal ones" $
+      property (\(x::PSequent Int) -> toLatex (inSeq x) == toLatex x)
     it "SequentTree gets exported properly" $
       toLatex proofTree `shouldBe` proofTreeTex
 \end{code}

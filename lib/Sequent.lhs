@@ -180,7 +180,7 @@ expansion to the base sequent \(\sequent{\Gamma'}{\Delta'}\) to get a new list o
 We can recursively compute such expansions to get a possibly valid proof.
 
 \begin{code}
-data Expanded s f r = Expd [s f] r
+data Expanded s f r = Expd [s f] r deriving (Eq, Show)
 
 applyExpansion :: s f -> Expansion s f r -> Maybe (Expanded s f r)
 applyExpansion s (Exp m e r) = Just $ Expd (m s <$> e) r
@@ -259,7 +259,7 @@ allValidTrees :: Expandable s f r => s f -> [SequentTree s f r]
 allValidTrees zs = trees (expand zs)
   where
     trees [] = [Axiom zs | verifyAxiom zs]
-    trees e = e >>= expandSingle
+    trees e = (if verifyAxiom zs then (Axiom zs:) else id) (e >>= expandSingle)
 
     expandSingle (Expd ss r) = Application r zs <$> combs (allValidTrees <$> ss)
 

@@ -1,21 +1,25 @@
 \documentclass{article}
 
+\usepackage{amsfonts}
 \usepackage{ebproof}
 
 \begin{document}
-\[
-p_{1}\wedge p_{2},p_{-2}\wedge p_{1}\Rightarrow \neg (p_{2}\vee p_{-1})
-\]
+2\begin{prooftree}
+\hypo{p_{1}\Rightarrow p_{1},p_{2}}
+\infer1[\(\vee R\)]{p_{1}\Rightarrow p_{1}\vee p_{2}}
 
-\begin{prooftree}
-\hypo{p_{1},p_{2},p_{-2},p_{1}\Rightarrow p_{2},p_{-1}}
-\infer1[\(\vee R\)]{p_{1},p_{2},p_{-2},p_{1}\Rightarrow p_{2}\vee p_{-1}}
+\infer1[\(\Box L\)]{\Box (p_{1})\Rightarrow p_{1}\vee p_{2}}
 
-\infer1[\(\neg R\)]{p_{1},p_{2},p_{-2},p_{1}\Rightarrow \neg (p_{2}\vee p_{-1})}
+\infer1[\(\Box R\)]{\Box (p_{1})\Rightarrow \Box (p_{1}\vee p_{2})}
 
-\infer1[\(\wedge L\)]{p_{-2}\wedge p_{1},p_{1},p_{2}\Rightarrow \neg (p_{2}\vee p_{-1})}
+\infer1[\(\Diamond R\)]{\Box (p_{1})\Rightarrow \Diamond (\Box (p_{1}\vee p_{2}))}
 
-\infer1[\(\wedge L\)]{p_{1}\wedge p_{2},p_{-2}\wedge p_{1}\Rightarrow \neg (p_{2}\vee p_{-1})}
+\infer1[\(\Diamond L\)]{\Diamond (\Box (p_{1}))\Rightarrow \Diamond (\Box (p_{1}\vee p_{2}))}
 
-\end{prooftree}
-\end{document}
+\infer1[\(\Box L\)]{\Box (\Diamond (\Box (p_{1})))\Rightarrow \Diamond (\Box (p_{1}\vee p_{2}))}
+
+\infer1[\(\Box R\)]{\Box (\Diamond (\Box (p_{1}))),\Diamond (\Box (p_{1}))\Rightarrow \Box (\Diamond (\Box (p_{1}\vee p_{2})))}
+
+\infer1[\(\Box L\)]{\Box (\Diamond (\Box (p_{1}))),\Box (\Diamond (\Box (p_{1})))\Rightarrow \Box (\Diamond (\Box (p_{1}\vee p_{2})))}
+
+\end{prooftree}\end{document}

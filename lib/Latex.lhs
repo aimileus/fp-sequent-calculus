@@ -3,6 +3,7 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Latex where
+
 \end{code}
 }
 \section{\LaTeX{} generation}
@@ -18,4 +19,12 @@ class ToLatex a where
 instance ToLatex Int where
   toLatex :: Int -> String
   toLatex = show
+
+instance (ToLatex a) => ToLatex (Maybe a) where
+  toLatex :: Maybe a -> String
+  toLatex Nothing = error "Is nothing"
+  toLatex (Just a) = toLatex a
+
+printLatex :: ToLatex a => a -> IO ()
+printLatex = putStrLn . toLatex
 \end{code}
