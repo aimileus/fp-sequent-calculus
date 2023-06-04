@@ -194,10 +194,6 @@ isDis :: PropForm p -> Bool
 isDis (Disj _ _) = True
 isDis _ = False
 
-isImpl :: PropForm p -> Bool
-isImpl (Impl _ _) = True
-isImpl _ = False
-
 isNeg :: PropForm p -> Bool
 isNeg (Neg _) = True
 isNeg _ = False
