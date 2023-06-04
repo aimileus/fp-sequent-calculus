@@ -166,7 +166,9 @@ instance (Arbitrary p) => Arbitrary (PropForm p) where
 \end{code}
 
 We also implement printing a formula as LaTeX expression in order to export
-our generated proofs.
+our generated proofs. We do a bit of work to eliminate as many parentheses as
+possible. We do this by checking whether operators bind stronger or weaker and
+deciding whether parentheses are necessary based on this.
 
 \begin{code}
 instance ToLatex PropRule where

@@ -147,7 +147,7 @@ validSequentsTex =
     "\\Rightarrow \\neg \\neg p_{1}\\to p_{1}"
   ]
 \end{code}
-We also have written the LaTeX code of a proof
+We also have written the LaTeX code of a proof tree.
 \begin{code}
 proofTree :: SequentTree SimpleSequent (PropForm Int) PropRule
 proofTree = Application PropSeq.ImplR (S [P 1] [Impl (P (0 :: Int)) (Impl (Conj (P 1) (Neg (P 0))) (P 1))]) [Application PropSeq.ImplR (S [P 1, P 0] [Impl (Conj (P 1) (Neg (P 0))) (P 1)]) [Application PropSeq.ConL (S [P 1, P 0, Conj (P 1) (Neg (P 0))] [P 1]) [Application PropSeq.NegL (Sequent.S [P 1, P 0, P 1, Neg (P 0)] [P 1]) [Axiom (S [P 1, P 0, P 1] [P 1, P 0])]]]]

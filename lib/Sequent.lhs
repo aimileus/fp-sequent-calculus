@@ -276,7 +276,19 @@ instance (Arbitrary f) => Arbitrary (SimpleSequent f) where
 
 instance (Arbitrary f, Expandable SimpleSequent f r) => Arbitrary (SequentTree SimpleSequent f r) where
   arbitrary = greedyTree . fromCons . return <$> arbitrary
+\end{code}
+We also implement exporting to latex for the \texttt{SimpleSequent} data type.
+We write the sequent as two comma separated multisets of formulas, separated by
+an arrow \(\Rightarrow\). The more interesting part is constructing proof trees
+in latex. We do this recursively exporting to a piece of \LaTeX{} code which
+can be rendered by the ebproof package. It turns out the structure of proof
+trees of this package suit themselves very well for recursive generation. We can
+first generate the latex code for the sequent and indicate how many nodes we
+want in the proof tree above this sequent, and then before it recursively
+create the code corresponding to the sequent tree above the current sequent. If
+there are no more sequents, we indicate we have arrived at an axiom.
 
+\begin{code}
 instance (ToLatex f) => ToLatex (SimpleSequent f) where
   toLatex :: SimpleSequent f -> String
   toLatex (S fs fs') = toCommaSeparated (toLatex <$> fs) ++ "\\Rightarrow " ++ toCommaSeparated (toLatex <$> fs')
