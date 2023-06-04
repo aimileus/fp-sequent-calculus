@@ -19,7 +19,7 @@ module Sequent
     applyExpansion,
     Expandable (..),
     Expansion (..),
-    SequentTree,
+    SequentTree(..),
     Verifiable (..),
   )
 
