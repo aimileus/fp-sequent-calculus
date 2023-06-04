@@ -1,16 +1,4 @@
-\subsection{Propositional logic}
-
-The language of propositional logic should be familiar to everyone. It can be
-expressed in a Context Free Grammar as such:
-\[
-    \varphi=P\mid\varphi\vee\varphi\mid\varphi\wedge\varphi\mid\varphi\to\varphi\mid\neg\varphi
-\]
-where \(P\) is any set of propositional letters. In Haskell we implement it as a
-data type generic over a type \(p\) which is the type of the propositional
-letters.
-
-% TODO: cite inversion lemma to argue that greedy search works.
-
+\ignore{
 \begin{code}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -30,9 +18,22 @@ import Sequent
       Verifiable(..) )
 import Test.QuickCheck (Arbitrary (arbitrary), oneof, sized)
 import Latex
+\end{code}
+}
+\subsection{Propositional logic}
 
-type Prop = Int
+The language of propositional logic should be familiar to everyone. It can be
+expressed in a Context Free Grammar as such:
+\[
+    \varphi=P\mid\varphi\vee\varphi\mid\varphi\wedge\varphi\mid\varphi\to\varphi\mid\neg\varphi
+\]
+where \(P\) is any set of propositional letters. In Haskell we implement it as a
+data type generic over a type \(p\) which is the type of the propositional
+letters.
 
+% TODO: cite inversion lemma to argue that greedy search works.
+
+\begin{code}
 data PropForm p
   = P p
   | Neg (PropForm p)
@@ -42,6 +43,10 @@ data PropForm p
   | Bot
   | Top
   deriving (Eq, Show)
+
+type PSequent p = SimpleSequent (PropForm p)
+
+type PSeqTree p = SequentTree SimpleSequent (PropForm p) PropRule
 
 (-->) :: PropForm p -> PropForm p -> PropForm p
 (-->) = Impl
@@ -114,10 +119,6 @@ We implement the types from the sequent module in order to use its functions to
 create proofs. This is simply according to the definition of sequent calculus
 above.
 \begin{code}
-type PSequent p = SimpleSequent (PropForm p)
-
-type PSeqTree p = SequentTree SimpleSequent (PropForm p) PropRule
-
 data PropRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
   deriving (Eq, Show, Enum)
 

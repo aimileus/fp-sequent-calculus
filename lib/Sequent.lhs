@@ -75,6 +75,9 @@ class Functor s => Sequent s where
   fromCons :: [f] -> s f
   expand :: Expandable s f r => s f -> [Expanded s f r]
 \end{code}
+We require a Sequent to be an instance of Functor. This will be useful later to
+convert between Sequents of different formula types.
+
 To store the tree we implement a simple tree-like recursive data structure.
 For the non-leaf nodes, we store the inference rule of type \texttt{r} used.
 \begin{code}

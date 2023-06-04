@@ -42,61 +42,50 @@ import Test.QuickCheck
 import Data.Maybe (isJust, isNothing)
 \end{code}
 
-The following uses the HSpec library to define different tests.
-Note that the first test is a specific test with fixed inputs.
-The second and third test use QuickCheck.
+In order to make it more likely that our code works correctly we have
+implemented a test suite. First we have written a list of formula that either
+should or should not be valid in classical/intuitionistic/modal logic.
 
 \begin{code}
 p, q, r :: PropForm Int
 (p, q, r) = (P 1, P 2, P 3)
 
+fromForms :: Sequent s => [f] -> [s f]
+fromForms = map (fromCons . return)
 
-validForms :: [PropForm Int]
-validForms =
-  [
-    p `Disj` Neg (p),
-    Neg (Neg p) --> p,
-    Neg (p & Neg (p)),
+validIForms :: [InForm Int]
+validIForms = In <$> [
+    p --> p,
+    Neg (p & Neg p),
     Top,
     ((p --> q) & (q --> r)) --> (p --> r)
   ]
 
-validFormsTex :: [String]
-validFormsTex =
+validISeqs :: [ISequent Int]
+validISeqs = (inSeq <$> [
+    S [p `Disj` q] [p, q],
+    S [p, q] [p & q],
+    S [p, q] [p, q]
+  ]) ++ fromForms validIForms
+
+validForms :: [PropForm Int]
+validForms =
   [
-    "p_{1}\\vee \\neg p_{1}",
-    "\\neg \\neg p_{1}\\to p_{1}",
-    "\\neg (p_{1}\\wedge \\neg p_{1})",
-    "\\top ",
-    "(p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})"
+    p `Disj` Neg p,
+    Neg (Neg p) --> p
   ]
 
 validSeqs :: [PSequent Int]
 validSeqs = [
     S [Neg (Neg p)] [p],
-    S [p `Disj` q] [p, q],
-    S [p, q] [p & q],
-    S [p, q] [p, q]
-  ] ++ map (fromCons . return) validForms
-
-validSeqsTex :: [String]
-validSeqsTex =
-  [ "\\neg \\neg p_{1}\\Rightarrow p_{1}",
-    "p_{1}\\vee p_{2}\\Rightarrow p_{1},p_{2}",
-    "p_{1},p_{2}\\Rightarrow p_{1}\\wedge p_{2}",
-    "p_{1},p_{2}\\Rightarrow p_{1},p_{2}",
-    "\\Rightarrow p_{1}\\vee \\neg p_{1}",
-    "\\Rightarrow \\neg \\neg p_{1}\\to p_{1}",
-    "\\Rightarrow \\neg (p_{1}\\wedge \\neg p_{1})",
-    "\\Rightarrow \\top ",
-    "\\Rightarrow (p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})"
-  ]
+    S [] [p, Neg p]
+  ] ++ (clasSeq <$> validISeqs) ++ fromForms validForms
 
 invalidForms :: [PropForm Int]
 invalidForms = [
     p,
     p & q,
-    p --> Neg (p),
+    p --> Neg p,
     Bot
   ]
 
@@ -104,32 +93,64 @@ invalidSeqs :: [PSequent Int]
 invalidSeqs = [
     S [] [p, q],
     S [p `Disj` q] [p]
-  ] ++ map (fromCons . return) invalidForms
-
-
-validIForms :: [InForm Int]
-validIForms = In <$> [
-
-  ]
+  ] ++ fromForms invalidForms
 
 invalidIForms :: [InForm Int]
 invalidIForms = In <$> [
     p `Disj` Neg p,
-    p --> Neg (Neg p)
+    Neg (Neg p) --> p
   ]
 
-fromCons' :: [f] -> SimpleSequent f
-fromCons' = fromCons
+invalidISeqs :: [ISequent Int]
+invalidISeqs = (inSeq <$> [
+    S [Neg (Neg p)] [p],
+    S [] [p, Neg p]
+  ]) ++ (inSeq <$> invalidSeqs) ++ fromForms invalidIForms
+\end{code}
 
-fromAnte' :: [f] -> Sequent.SimpleSequent f
-fromAnte' = Sequent.fromAnte
+To test the \LaTeX{} generation code, we have written what the corresponding
+LaTeX code is supposed to be.
+\begin{code}
+validFormsTex :: [String]
+validFormsTex =
+  [
+    "p_{1}\\vee \\neg p_{1}",
+    "\\neg \\neg p_{1}\\to p_{1}"
+  ]
 
+validSeqsTex :: [String]
+validSeqsTex =
+  [
+    "\\neg \\neg p_{1}\\Rightarrow p_{1}",
+    "\\Rightarrow p_{1},\\neg p_{1}",
+    "p_{1}\\vee p_{2}\\Rightarrow p_{1},p_{2}",
+    "p_{1},p_{2}\\Rightarrow p_{1}\\wedge p_{2}",
+    "p_{1},p_{2}\\Rightarrow p_{1},p_{2}",
+    "\\Rightarrow p_{1}\\to p_{1}",
+    "\\Rightarrow \\neg (p_{1}\\wedge \\neg p_{1})",
+    "\\Rightarrow \\top ",
+    "\\Rightarrow (p_{1}\\to p_{2})\\wedge (p_{2}\\to p_{3})\\to (p_{1}\\to p_{3})",
+    "\\Rightarrow p_{1}\\vee \\neg p_{1}",
+    "\\Rightarrow \\neg \\neg p_{1}\\to p_{1}"
+  ]
+\end{code}
+We also have written the LaTeX code of a proof tree.Applicative
+\begin{code}
 proofTree :: SequentTree SimpleSequent (PropForm Int) PropRule
 proofTree = Application PropSeq.ImplR (S [P 1] [Impl (P (0 :: Int)) (Impl (Conj (P 1) (Neg (P 0))) (P 1))]) [Application PropSeq.ImplR (S [P 1, P 0] [Impl (Conj (P 1) (Neg (P 0))) (P 1)]) [Application PropSeq.ConL (S [P 1, P 0, Conj (P 1) (Neg (P 0))] [P 1]) [Application PropSeq.NegL (Sequent.S [P 1, P 0, P 1, Neg (P 0)] [P 1]) [Axiom (S [P 1, P 0, P 1] [P 1, P 0])]]]]
 
 proofTreeTex :: String
 proofTreeTex = "\\begin{prooftree}\n\\hypo{p_{1},p_{0},p_{1}\\Rightarrow p_{1},p_{0}}\n\\infer1[\\(\\neg L\\)]{p_{1},p_{0},p_{1},\\neg p_{0}\\Rightarrow p_{1}}\n\n\\infer1[\\(\\wedge L\\)]{p_{1},p_{0},p_{1}\\wedge \\neg p_{0}\\Rightarrow p_{1}}\n\n\\infer1[\\(\\to R\\)]{p_{1},p_{0}\\Rightarrow p_{1}\\wedge \\neg p_{0}\\to p_{1}}\n\n\\infer1[\\(\\to R\\)]{p_{1}\\Rightarrow p_{0}\\to (p_{1}\\wedge \\neg p_{0}\\to p_{1})}\n\n\\end{prooftree}"
+\end{code}
 
+\begin{code}
+fromCons' :: [f] -> SimpleSequent f
+fromCons' = fromCons
+
+fromAnte' :: [f] -> SimpleSequent f
+fromAnte' = fromAnte
+\end{code}
+\begin{code}
 main :: IO ()
 main = hspec $ do
   describe "SimpleSequent" $ do
@@ -156,10 +177,14 @@ main = hspec $ do
       property (\(a::PSequent Int) -> isJust (Sequent.prove a) == Sequent.verifyTree (Sequent.greedyTree a))
   describe "ZipperSequent" $ do
     it "zipper2simple inverse of simple2zipper:" $
-      property (\(s::PSequent Int) -> (Sequent.zipper2simple . Sequent.simple2zipper) s == s)
-  describe "Intuisionistic logic" $ do
-    it "Intuisionistic truth implies classical truth" $
-      property (\(s::Sequent.SimpleSequent (InForm Int)) -> isJust (Sequent.prove s) <= isJust (Sequent.prove $ inseq2clas s))
+      property (\(s::PSequent Int) -> (zipper2simple . simple2zipper) s == s)
+  describe "Properties of intuitionistic logic" $ do
+    it "Intuitionistic truth implies classical truth" $
+      property (\(s::SimpleSequent (InForm Int)) -> isJust (prove s) <= isJust (prove $ clasSeq s))
+    it "valid sequents are valid" $
+      all (isJust . prove) validISeqs `shouldBe` True
+    it "invalid sequents are invalid" $
+      any (isJust . prove) invalidISeqs `shouldBe` False
   describe "Utils" $ do
     it "combs: simple test" $
       combs [[1::Int, 2], [3, 4]] `shouldBe` [[1,3],[1,4],[2,3],[2,4]]
@@ -192,8 +217,6 @@ main = hspec $ do
       property (\(x::PropForm Int) -> toLatex (In x) == toLatex x)
     it "SequentTree gets exported properly" $
       toLatex proofTree `shouldBe` proofTreeTex
-
-
 \end{code}
 
 To run the tests, use \verb|stack test|.

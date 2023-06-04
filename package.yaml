@@ -17,7 +17,7 @@ library:
 
 tests:
   simpletests:
-    main: simpletests.lhs
+    main: Main.lhs
     source-dirs: test
     dependencies:
       - seqcal

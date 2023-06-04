@@ -44,10 +44,10 @@ where the correct proof would be
 \infer1[\(\to R\)]{p_{1}\Rightarrow p_{1}\to \bot ,p_{1}\to \top }
 \end{prooftree}
 \]
-We define an intuisionistic formula as a newtype over the classical propositional formula.
-Therefore, the compiler knows whether a formula is classical or intuisionistic,
+We define an intuitionistic formula as a newtype over the classical propositional formula.
+Therefore, the compiler knows whether a formula is classical or intuitionistic,
 and can call the appropriate functions to generate the proof. On the other hand
-there is no runtime overhead, and the in-memory representation of intuisionistic
+there is no runtime overhead, and the in-memory representation of intuitionistic
 formula is the same as for classical formula.
 \begin{code}
 newtype InForm p = In (PropForm p)
@@ -59,7 +59,7 @@ data InRule = ConL | ConR | DisL | DisR | NegL | NegR | ImplL | ImplR
 type ISequent p = SimpleSequent (InForm p)
 \end{code}
 First we introduce some functions to easily convert between classical and
-intuisionistic formula/sequents/expansions
+intuitionistic formula/sequents/expansions
 \begin{code}
 clas :: InForm f -> PropForm f
 clas (In f) = f
@@ -71,7 +71,7 @@ inSeq :: Sequent s => s (PropForm f) -> s (InForm f)
 inSeq = (In <$>)
 \end{code}
 
-The axioms for intuisionistic formula are the same as for classical formula.
+The axioms for intuitionistic formula are the same as for classical formula.
 
 \begin{code}
 instance (Eq p) => Verifiable (InForm p) where
@@ -81,7 +81,7 @@ instance (Eq p) => Verifiable (InForm p) where
 
 We see that it is very convenient to declare intuisiontistic functions in terms
 of their classical functions. Therefore, we define more functions to convert between
-intuisionistic and classical data structures.
+intuitionistic and classical data structures.
 
 \begin{code}
 clasRule :: InRule -> PropRule
@@ -97,7 +97,7 @@ inExpandable (Exp m s r) = Exp (inMerge m) (inSeq <$> s) (inRule r)
 inExpandable (Atomic f) = Atomic (In f)
 \end{code}
 
-Now we can easily define the expansions for intuisionistic logic. Here we can
+Now we can easily define the expansions for intuitionistic logic. Here we can
 reuse the classical expansions
 
 \begin{code}
@@ -114,7 +114,7 @@ instance Eq p => Expandable SimpleSequent (InForm p) InRule where
   expandRight (In f) = inExpandable (expandRight f)
 \end{code}
 
-Finally we also make intuisionistic formulae instances of ToLatex and Arbitrary.
+Finally we also make intuitionistic formulae instances of ToLatex and Arbitrary.
 
 \begin{code}
 instance ToLatex InRule where
