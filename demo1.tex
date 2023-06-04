@@ -3,7 +3,19 @@
 \usepackage{ebproof}
 
 \begin{document}
+\[
+p_{1}\wedge p_{2},p_{-2}\wedge p_{1}\Rightarrow \neg (p_{2}\vee p_{-1})
+\]
+
 \begin{prooftree}
+\hypo{p_{1},p_{2},p_{-2},p_{1}\Rightarrow p_{2},p_{-1}}
+\infer1[\(\vee R\)]{p_{1},p_{2},p_{-2},p_{1}\Rightarrow p_{2}\vee p_{-1}}
+
+\infer1[\(\neg R\)]{p_{1},p_{2},p_{-2},p_{1}\Rightarrow \neg (p_{2}\vee p_{-1})}
+
+\infer1[\(\wedge L\)]{p_{-2}\wedge p_{1},p_{1},p_{2}\Rightarrow \neg (p_{2}\vee p_{-1})}
+
+\infer1[\(\wedge L\)]{p_{1}\wedge p_{2},p_{-2}\wedge p_{1}\Rightarrow \neg (p_{2}\vee p_{-1})}
 
 \end{prooftree}
 \end{document}

@@ -17,6 +17,8 @@ module Sequent
     verifyTree,
     allValidTrees,
     prove,
+    simple2zipper,
+    zipper2simple,
     Expandable (..),
     Expansion (..),
     SequentTree,
@@ -141,14 +143,7 @@ to get a possibly valid proof.
 
 \begin{code}
 data Expansion s f r
-  = Exp
-      -- Make the Sequent type use in the merge function independent of f and r.
-      -- Now it is slightly more convenient to convert sequents between formula
-      -- types.
-      { merge :: s f -> s f -> s f,
-        exps :: [s f],
-        rule :: r
-      }
+  = Exp (s f -> s f -> s f) [s f] r
   | Atomic f
 
 data Expanded s f r = Expd [s f] r
@@ -218,7 +213,7 @@ which implements being randomly generated.
 
 \begin{code}
 instance (Arbitrary f) => Arbitrary (SimpleSequent f) where
-  arbitrary = S <$> arbitrary <*> arbitrary
+  arbitrary = fromCons . return <$> arbitrary
 
 instance (Arbitrary f, Expandable SimpleSequent f r) => Arbitrary (SequentTree SimpleSequent f r) where
   arbitrary = greedyTree . fromCons . return <$> arbitrary

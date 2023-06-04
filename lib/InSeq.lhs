@@ -9,8 +9,8 @@ import Latex (ToLatex (..))
 import PropSeq (PropForm (..))
 import Sequent
 import Data.List
+import Test.QuickCheck (Arbitrary, arbitrary)
 \end{code}
-}
 
 \subsection{Intuitionistic logic}
 With all of the work we have done so far, implementing intuitionistic logic is
@@ -47,10 +47,13 @@ instance Eq p => Expandable SimpleSequent (InForm p) InRule where
   expandRight (In (phi `Impl` psi)) = Exp mergeRightImpl [S [In phi] [In psi]] ImplR
   expandRight (In (phi `Conj` psi)) = simpleExp [fromCons [In psi], fromCons [In phi]] ConR
   expandRight (In (phi `Disj` psi)) = simpleExp [fromCons [In phi, In psi]] DisR
-  expandRight (In (Neg phi)) = simpleExp [fromCons [In phi]] NegR
+  expandRight (In (Neg phi)) = simpleExp [fromCons [In (phi `Impl` Bot)]] NegR
   expandRight phi@(In (P _)) = Atomic phi
   expandRight phi@(In Top) = Atomic phi
   expandRight phi@(In Bot) = Atomic phi
+
+instance (Arbitrary p) => Arbitrary (InForm p) where
+  arbitrary = In <$> arbitrary
 
 
 instance (Eq p) => Verifiable (InForm p) where
@@ -65,15 +68,21 @@ instance (Eq p) => Verifiable (InForm p) where
 mergeRightImpl :: Eq a => SimpleSequent a -> SimpleSequent a -> SimpleSequent a
 mergeRightImpl (S a1 _c1) (S a2 c2) = S (nub (a1 ++ a2)) c2
 
+in2clas :: InForm f -> PropForm f
+in2clas (In f) = f
+
+inseq2clas :: SimpleSequent (InForm f) -> SimpleSequent (PropForm f)
+inseq2clas (S a c) = S (map in2clas a) (map in2clas c)
+
 instance ToLatex InRule where
-  toLatex ConL = "\\(\\wedge L\\)"
-  toLatex ConR = "\\(\\wedge R\\)"
-  toLatex DisL = "\\(\\vee L\\)"
-  toLatex DisR = "\\(\\vee R\\)"
-  toLatex NegL = "\\(\\neg L\\)"
-  toLatex NegR = "\\(\\neg R\\)"
-  toLatex ImplL = "\\(\\to L\\)"
-  toLatex ImplR = "\\(\\to R\\)"
+  toLatex ConL = "\\wedge L"
+  toLatex ConR = "\\wedge R"
+  toLatex DisL = "\\vee L"
+  toLatex DisR = "\\vee R"
+  toLatex NegL = "\\neg L"
+  toLatex NegR = "\\neg R"
+  toLatex ImplL = "\\to L"
+  toLatex ImplR = "\\to R"
 
 instance ToLatex p => ToLatex (InForm p) where
   toLatex (In phi) = toLatex phi

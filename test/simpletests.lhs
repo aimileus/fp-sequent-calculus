@@ -10,7 +10,7 @@ and test some properties.
 
 module Main where
 
-import Utils
+import Utils ( combs, holes, firstJust )
 import Sequent
     ( Sequent(..),
       SimpleSequent(..),
@@ -18,17 +18,21 @@ import Sequent
       fromAnte,
       fromCons,
       seqSimple,
-      prove,
       leafs,
       greedyTree,
-      verifyTree)
+      verifyTree,
+      simple2zipper,
+      zipper2simple,
+      prove,
+      )
 import PropSeq
+import InSeq
 
 import Data.List
 
 import Test.Hspec
 import Test.QuickCheck
-import Data.Maybe (listToMaybe)
+import Data.Maybe (isJust, isNothing)
 \end{code}
 
 The following uses the HSpec library to define different tests.
@@ -75,11 +79,7 @@ fromAnte' = fromAnte
 
 main :: IO ()
 main = hspec $ do
-  describe "Properties of propositional logic" $ do
-    it "valid sequents are valid" $
-      all (verifyTree . greedyTree) validSeqs `shouldBe` True
-    it "invalid sequents are invalid" $
-      any (verifyTree . greedyTree) invalidSeqs `shouldBe` False
+  describe "SimpleSequent" $ do
     it "fromAnte: cons should be empty" $
       property (\(fs::[PropForm Int]) -> null $ cons $ fromAnte' fs)
     it "fromAnte: ante is inverse" $
@@ -88,12 +88,25 @@ main = hspec $ do
       property (\(fs::[PropForm Int]) -> null $ ante $ fromCons' fs)
     it "fromCons: cons is inverse" $
       property (\(fs::[PropForm Int]) -> cons (fromCons' fs) == fs)
+  describe "Properties of propositional logic" $ do
+    it "valid sequents are valid" $
+      all (verifyTree . greedyTree) validSeqs `shouldBe` True
+    it "invalid sequents are invalid" $
+      any (verifyTree . greedyTree) invalidSeqs `shouldBe` False
     it "seqTree: leafs cannot be simplified" $
       property (\(st::PSeqTree Int) -> all seqSimple $ leafs st)
     it "simpleMerge: ante is merged" $
       property (\(a::PSequent Int) (b::PSequent Int) -> ante a ++ ante b == ante (a `simpleMerge` b))
     it "simpleMerge: cons is merged" $
       property (\(a::PSequent Int) (b::PSequent Int) -> cons a ++ cons b == cons (a `simpleMerge` b))
+    it "greedy approach works for classical logic" $
+      property (\(a::PSequent Int) -> isJust (prove a) == verifyTree (greedyTree a))
+  describe "ZipperSequent" $ do
+    it "zipper2simple inverse of simple2zipper:" $
+      property (\(s::PSequent Int) -> (zipper2simple . simple2zipper) s == s)
+  describe "Intuisionistic logic" $ do
+    it "Intuisionistic truth implies classical truth" $
+      property (\(s::SimpleSequent (InForm Int)) -> isJust (prove s) <= isJust (prove $ inseq2clas s))
   describe "Utils" $ do
     it "combs: simple test" $
       combs [[1::Int, 2], [3, 4]] `shouldBe` [[1,3],[1,4],[2,3],[2,4]]
@@ -104,7 +117,19 @@ main = hspec $ do
     it "combs: lazy" $
       (head . combs) [[(1::Int)..], [3..]] `shouldBe` [1,3]
     it "combs: empty combination" $
-      combs ([]:map singleton [1..]) `shouldBe` []
+      combs ([]:map singleton [(1::Int)..]) `shouldBe` []
+    it "holes: all elements" $
+      property (\(x::[Int]) -> map snd (holes x) == x )
+    it "holes: length of list" $
+      property (\(x::[Int]) -> all (\y -> length (fst y) + 1 == length x) (holes x))
+    it "holes: concat is entire list" $
+      property (\(x::[Int]) -> all (\y -> sort (snd y:fst y) == sort x) (holes x))
+    it "firstJust: keeps just" $
+      property (\(x::[Maybe Int]) -> any isJust x ==> isJust (firstJust x))
+    it "firstJust: sees nothing" $
+      property (\(x::[Maybe Int]) -> isNothing (firstJust $ filter isNothing x))
+    it "firstJust: element of list (when non-empty)" $
+      property (\(x::[Maybe Int]) -> null x || firstJust x `elem` x)
 
 
 \end{code}

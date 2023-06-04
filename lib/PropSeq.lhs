@@ -163,12 +163,12 @@ instance (Arbitrary p) => Arbitrary (PropForm p) where
       f 0 = P <$> arbitrary
       f n =
         oneof
-          [ Neg <$> f (n - 1),
+          [ Neg <$> f (n `div` 2),
             Impl
-              <$> f (n `div` 3)
-              <*> f (n `div` 3),
-            Conj <$> f (n `div` 3) <*> f (n `div` 3),
-            Disj <$> f (n `div` 3) <*> f (n `div` 3)
+              <$> f (n `div` 8)
+              <*> f (n `div` 8),
+            Conj <$> f (n `div` 8) <*> f (n `div` 8),
+            Disj <$> f (n `div` 8) <*> f (n `div` 8)
           ]
 \end{code}
 
