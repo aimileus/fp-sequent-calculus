@@ -1,8 +1,8 @@
-name: report
+name: seqcal
 version: 0.1.0.0
-synopsis: My Haskell project
+synopsis: Sequent calculus proof generator
 description: See report.pdf
-maintainer: My Name <my.email@example.com>
+maintainer: Jonas van der Schaaf <jonas.vanderschaaf@student.uva.nl>, Emiel Wiedijk <emiel.wiedijk@student.uva.nl>
 category: Logic
 
 ghc-options: -Wall
@@ -15,18 +15,11 @@ dependencies:
 library:
   source-dirs: lib
 
-executables:
-  myprogram:
-    main: Main.lhs
-    source-dirs: exec
-    dependencies:
-      - report
-
 tests:
   simpletests:
-    main: simpletests.lhs
+    main: Main.lhs
     source-dirs: test
     dependencies:
-      - report
+      - seqcal
       - QuickCheck
       - hspec

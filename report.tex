@@ -1,24 +1,26 @@
 \documentclass[12pt,a4paper]{article}
 \input{latexmacros.tex}
 
-\title{My Report}
-\author{Me}
+\title{Sequent calculus proof generation in Haskell}
+\author{Jonas van der Schaaf, Emiel Wiedijk}
 \date{\today}
-\hypersetup{pdfauthor={Me}, pdftitle={My Report}}
+\hypersetup{pdfauthor={Jonas van der Schaaf, Emiel Wiedijk}, pdftitle={Sequent Calculus proof generation in Haskell}}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-We give a toy example of a report in \emph{literate programming} style.
-The main advantage of this is that source code and documentation can
-be written and presented next to each other.
-We use the listings package to typeset Haskell source code nicely.
+    Sequent calculus is a way to formalize natural deduction proofs. We give a
+    Haskell library for the generation of sequent Calculus sroofs. Our code can
+    generate proofs for both classical and intuitionistic sequent calculus. We
+    believe that the extensive use of typeclasses allows our code to be used to
+    generate proofs for many other sequent calculi as well. We also support
+    exporting of a sequent calculus proof to \LaTeX{} code using the package
+    ebproof.
 \end{abstract}
 
-\vfill
-
+\newpage
 \tableofcontents
 
 \clearpage
@@ -26,20 +28,24 @@ We use the listings package to typeset Haskell source code nicely.
 % We include one file for each section. The ones containing code should
 % be called something.lhs and also mentioned in the .cabal file.
 
-\input{Howto.tex}
+\input{lib/Sequent.lhs}
 
-\input{lib/Basics.lhs}
+\input{lib/PropSeq.lhs}
 
-\input{exec/Main.lhs}
+\input{lib/InSeq.lhs}
 
-\input{test/simpletests.lhs}
+\input{lib/ModalSeq.lhs}
 
-\input{Profiling.tex}
+\input{lib/ZipperSequent.lhs}
 
-\input{Conclusion.tex}
+\input{lib/Latex.lhs}
 
+\newpage
+\input{test/Main.lhs}
+
+\newpage
+\input{lib/Utils.lhs}
 \addcontentsline{toc}{section}{Bibliography}
 \bibliographystyle{alpha}
 \bibliography{references.bib}
-
 \end{document}
