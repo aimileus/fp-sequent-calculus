@@ -33,6 +33,7 @@ import Data.List
 import Test.Hspec
 import Test.QuickCheck
 import Data.Maybe (isJust, isNothing)
+\end{code}
 }
 \section{Simple Tests}
 \label{sec:simpletests}
